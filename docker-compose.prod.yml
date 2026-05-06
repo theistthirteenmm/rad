@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+
+  # ── Database ────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: rad-postgres
+    environment:
+      POSTGRES_DB: rad
+      POSTGRES_USER: rad
+      POSTGRES_PASSWORD: rad_secret_2024
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rad -d rad"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - rad-net
+
+  # ── Cache ───────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: rad-redis
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - rad-net
+
+  # ── Backend ─────────────────────────────────────────────────────
+  backend:
+    build: ./backend
+    container_name: rad-backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://rad:rad_secret_2024@postgres:5432/rad
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=rad_educational_app_secret_key_2024_very_secure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - rad-net
+
+  # ── Frontend (production build + nginx) ─────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: rad-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - rad-net
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  rad-net:
+    driver: bridge
