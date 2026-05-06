@@ -43,7 +43,7 @@ export default function AboutPage() {
         <div style={{ fontSize: '2rem', marginBottom: 12 }}>💜</div>
         <h2 style={{ fontSize: 18, color: 'var(--primary)', marginBottom: 12 }}>داستان راد</h2>
         <p style={{ fontSize: 14, lineHeight: 2, color: 'var(--text)' }}>
-          راد را به خاطر پسرم <strong>رادین</strong>، دانش‌آموز مدرسه رازی، ساختم.
+          راد را به خاطر پسرم <strong>رادین کولیوند</strong>، دانش‌آموز مدرسه رازی، ساختم.
           می‌خواستم یادگیری برایش هیجان‌انگیز و لذت‌بخش باشد؛
           نه خسته‌کننده و تکراری.
         </p>

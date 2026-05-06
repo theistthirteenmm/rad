@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete as sql_delete
 from sqlalchemy.orm import selectinload
 from ..database import get_db
-from ..models import User
+from ..models import User, GameSession, LevelProgress
 from ..schemas import UserOut, UpdateUserRequest
 from .auth import get_current_user, _load_user, _user_out
 
@@ -30,8 +30,10 @@ async def list_users(
         q = q.where(User.grade_id == int(grade_id))
     if class_id:
         q = q.where(User.class_id == int(class_id))
-    # non-admin teachers/parents only see their own school
-    if current_user.role in ('teacher', 'parent') and current_user.school_id:
+    # school-scoped admin sees only their school; super admin (no school) sees all
+    if current_user.role == 'admin' and current_user.school_id:
+        q = q.where(User.school_id == current_user.school_id)
+    elif current_user.role in ('teacher', 'parent') and current_user.school_id:
         q = q.where(User.school_id == current_user.school_id)
     result = await db.execute(q)
     return [_user_out(u) for u in result.scalars().all()]
@@ -85,3 +87,26 @@ async def update_user(
     await db.commit()
     full = await _load_user(db, user_id)
     return _user_out(full)
+
+
+@router.delete('/{user_id}', status_code=204)
+async def delete_user(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role != 'admin':
+        raise HTTPException(403, 'Forbidden')
+    if current_user.id == user_id:
+        raise HTTPException(400, 'نمی‌توانی خودت را حذف کنی')
+    r = await db.execute(select(User).where(User.id == user_id))
+    user = r.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, 'کاربر یافت نشد')
+    # school-scoped admin can only delete their own school users
+    if current_user.school_id and user.school_id != current_user.school_id:
+        raise HTTPException(403, 'Forbidden')
+    await db.execute(sql_delete(GameSession).where(GameSession.user_id == user_id))
+    await db.execute(sql_delete(LevelProgress).where(LevelProgress.user_id == user_id))
+    await db.delete(user)
+    await db.commit()

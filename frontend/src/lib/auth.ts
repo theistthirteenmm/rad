@@ -88,6 +88,13 @@ export async function updateUser(id: string, updates: Partial<User>): Promise<vo
   } catch { /* best-effort */ }
 }
 
+export async function deleteUser(id: string): Promise<boolean> {
+  try {
+    await api.delete(`/users/${id}`)
+    return true
+  } catch { return false }
+}
+
 export async function changeCredentials(
   _id: string,
   newUsername: string,

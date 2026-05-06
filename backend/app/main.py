@@ -1,13 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .database import init_db
+from .database import init_db, AsyncSessionLocal
 from .routers import games
-from .routers.auth import router as auth_router
+from .routers.auth import router as auth_router, _hash
 from .routers.schools import router as schools_router
 from .routers.users import router as users_router
 from .routers.progress import router as progress_router
 from .routers.leaderboard import router as leaderboard_router
 from .routers.levels import router as levels_router
+from .models import User
+from sqlalchemy import select
 
 app = FastAPI(title='رادین - بازی آموزشی کلاس اول', version='2.0.0')
 
@@ -31,6 +33,27 @@ app.include_router(games.router)
 @app.on_event('startup')
 async def startup():
     await init_db()
+    await _seed_superadmin()
+
+
+async def _seed_superadmin():
+    async with AsyncSessionLocal() as db:
+        r = await db.execute(select(User).where(User.username == 'hamed'))
+        u = r.scalar_one_or_none()
+        if u:
+            u.role = 'admin'
+            u.name = 'حامد — مدیر کل'
+            u.school_id = None
+        else:
+            u = User(
+                username='hamed',
+                password_hash=_hash('H@med_Rad#2026'),
+                role='admin',
+                name='حامد — مدیر کل',
+                school_id=None,
+            )
+            db.add(u)
+        await db.commit()
 
 
 @app.get('/')

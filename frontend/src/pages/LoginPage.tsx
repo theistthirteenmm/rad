@@ -31,7 +31,8 @@ export default function LoginPage() {
     if (!result.ok) { setError(result.error); return }
     setUser(result.user)
     const routes: Record<Role, string> = { teacher: '/teacher', parent: '/parent', admin: '/admin', student: '/' }
-    nav(routes[role], { replace: true })
+    const dest = role === 'admin' && result.user?.username === 'hamed' ? '/superadmin' : routes[role]
+    nav(dest, { replace: true })
   }
 
   return (
