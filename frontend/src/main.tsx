@@ -8,3 +8,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
   </React.StrictMode>
 )
+
+// Hide splash after first paint
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      (window as any).__hideSplash?.()
+    }, 600)
+  })
+})

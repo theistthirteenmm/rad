@@ -9,29 +9,32 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', '*.png', '*.svg'],
       manifest: {
-        name: 'رادین - بازی آموزشی کلاس اول',
-        short_name: 'رادین',
+        name: 'راد - بازی آموزشی',
+        short_name: 'راد',
         description: 'بازی آموزشی تعاملی برای دانش‌آموزان کلاس اول',
         theme_color: '#6C63FF',
-        background_color: '#ffffff',
+        background_color: '#6C63FF',
         display: 'standalone',
         orientation: 'portrait',
         lang: 'fa',
         dir: 'rtl',
+        start_url: '/',
+        scope: '/',
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' }
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: 'apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
         ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^http:\/\/localhost:8000\/api\//,
+            urlPattern: /\/api\//,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
-              networkTimeoutSeconds: 5,
+              networkTimeoutSeconds: 6,
               cacheableResponse: { statuses: [0, 200] }
             }
           }
