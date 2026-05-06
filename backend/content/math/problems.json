@@ -1,0 +1,22 @@
+[
+  {"type": "add", "a": 1,  "b": 1,  "answer": 2,  "level": 1},
+  {"type": "add", "a": 2,  "b": 3,  "answer": 5,  "level": 1},
+  {"type": "add", "a": 3,  "b": 4,  "answer": 7,  "level": 1},
+  {"type": "add", "a": 4,  "b": 5,  "answer": 9,  "level": 1},
+  {"type": "add", "a": 1,  "b": 2,  "answer": 3,  "level": 1},
+  {"type": "sub", "a": 5,  "b": 2,  "answer": 3,  "level": 1},
+  {"type": "sub", "a": 4,  "b": 1,  "answer": 3,  "level": 1},
+  {"type": "sub", "a": 6,  "b": 3,  "answer": 3,  "level": 1},
+  {"type": "add", "a": 6,  "b": 3,  "answer": 9,  "level": 2},
+  {"type": "add", "a": 5,  "b": 4,  "answer": 9,  "level": 2},
+  {"type": "add", "a": 7,  "b": 2,  "answer": 9,  "level": 2},
+  {"type": "sub", "a": 8,  "b": 3,  "answer": 5,  "level": 2},
+  {"type": "sub", "a": 9,  "b": 4,  "answer": 5,  "level": 2},
+  {"type": "sub", "a": 10, "b": 4,  "answer": 6,  "level": 2},
+  {"type": "add", "a": 7,  "b": 8,  "answer": 15, "level": 3},
+  {"type": "add", "a": 9,  "b": 6,  "answer": 15, "level": 3},
+  {"type": "add", "a": 8,  "b": 7,  "answer": 15, "level": 3},
+  {"type": "sub", "a": 15, "b": 7,  "answer": 8,  "level": 3},
+  {"type": "sub", "a": 12, "b": 5,  "answer": 7,  "level": 3},
+  {"type": "sub", "a": 18, "b": 9,  "answer": 9,  "level": 3}
+]

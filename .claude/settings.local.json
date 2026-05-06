@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"d:\\\\radin\\\\backend\\\\app\\\\routers\" \"d:\\\\radin\\\\backend\\\\app\\\\models\" && ls \"d:\\\\radin\\\\backend\")",
+      "Bash(npx create-react-app *)",
+      "Bash(npm install *)",
+      "Bash(wsl docker *)",
+      "Bash(wsl mkdir *)",
+      "Bash(wsl bash *)",
+      "Bash(npx tsc *)",
+      "PowerShell($p = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1; if \\($p\\) { Stop-Process -Id $p -Force; \"Killed PID $p on port 3000\" } else { \"Port 3000 is free\" })",
+      "PowerShell(@\\(3000, 3001, 3002\\) | ForEach-Object { $port = $_; $proc = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1; if \\($proc\\) { Stop-Process -Id $proc -Force -ErrorAction SilentlyContinue; \"Killed port $port \\(PID $proc\\)\" } else { \"Port $port free\" } })",
+      "Bash(netsh interface *)",
+      "PowerShell(netsh interface portproxy add v4tov4 listenport=80 listenaddress=0.0.0.0 connectport=80 connectaddress=172.17.135.79)",
+      "PowerShell(netsh interface portproxy add v4tov4 listenport=9001 listenaddress=0.0.0.0 connectport=9001 connectaddress=172.17.135.79)",
+      "Bash(git init *)",
+      "Bash(git remote *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git config *)",
+      "Bash(git push *)"
+    ],
+    "additionalDirectories": [
+      "d:\\radin\\backend\\app"
+    ]
+  }
+}

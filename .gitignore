@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Docker volumes
+*.log
+
+# SSL certs (private)
+infra/ssl/key.pem
+infra/ssl/cert.pem
+
+# Large files
+pdf/
+
+# OS
+.DS_Store
+Thumbs.db

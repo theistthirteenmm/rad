@@ -1,0 +1,108 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { useStore } from '../store/useStore'
+import { updateUser } from '../lib/auth'
+
+const AVATARS = ['🦁', '🐯', '🐻', '🦊', '🐼', '🐸', '🦋', '🐬']
+const ACCESSORIES = [
+  { id: 'hat1', emoji: '🎩', name: 'کلاه', cost: 10 },
+  { id: 'hat2', emoji: '👑', name: 'تاج', cost: 20 },
+  { id: 'glasses', emoji: '🕶️', name: 'عینک', cost: 15 },
+  { id: 'star', emoji: '⭐', name: 'ستاره طلایی', cost: 30 },
+  { id: 'medal', emoji: '🏅', name: 'مدال', cost: 25 },
+  { id: 'rainbow', emoji: '🌈', name: 'رنگین‌کمان', cost: 40 },
+]
+
+export default function CharacterPage() {
+  const nav = useNavigate()
+  const student = useStore(s => s.student)
+  const setUser = useStore(s => s.setUser)
+  const [selectedAvatar, setSelectedAvatar] = useState(parseInt(student?.avatar?.replace('avatar', '') || '0'))
+  const [items, setItems] = useState<string[]>([])
+
+  if (!student) return null
+
+  const buy = async (acc: typeof ACCESSORIES[0]) => {
+    if (student.coins < acc.cost) { alert('سکه کافی نداری!'); return }
+    if (items.includes(acc.id)) { alert('قبلاً خریدی!'); return }
+    const newItems = [...items, acc.id]
+    setItems(newItems)
+    const updated = { ...student, coins: student.coins - acc.cost }
+    setUser(updated)
+    await updateUser(student.id, { coins: updated.coins })
+  }
+
+  const changeAvatar = async (idx: number) => {
+    setSelectedAvatar(idx)
+    const updated = { ...student, avatar: `avatar${idx}` }
+    setUser(updated)
+    await updateUser(student.id, { avatar: `avatar${idx}` })
+  }
+
+  return (
+    <div className="container">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+        <button onClick={() => nav('/')} style={{ background: 'none', fontSize: 20 }}>←</button>
+        <h1 style={{ fontSize: 20, color: 'var(--primary)' }}>🎭 شخصیت من</h1>
+      </div>
+
+      {/* Character display */}
+      <motion.div className="card" style={{ textAlign: 'center', marginBottom: 20,
+        background: 'linear-gradient(135deg, #f0eeff, #fff0f3)' }}>
+        <div style={{ fontSize: '6rem', marginBottom: 8 }}>
+          {AVATARS[selectedAvatar]}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+          {items.map(id => {
+            const acc = ACCESSORIES.find(a => a.id === id)
+            return acc ? <span key={id} style={{ fontSize: '1.5rem' }}>{acc.emoji}</span> : null
+          })}
+        </div>
+        <div style={{ fontWeight: 700, fontSize: 16 }}>{student.name}</div>
+        <div style={{ color: 'var(--text-light)', fontSize: 13 }}>سطح {student.level}</div>
+        <div style={{ marginTop: 8, color: '#FF9500', fontWeight: 600 }}>🪙 {student.coins} سکه</div>
+      </motion.div>
+
+      {/* Avatar selection */}
+      <h3 style={{ marginBottom: 12, fontSize: 15 }}>انتخاب آواتار:</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
+        {AVATARS.map((emoji, i) => (
+          <motion.button key={i} whileTap={{ scale: 0.9 }} onClick={() => changeAvatar(i)}
+            style={{
+              fontSize: '2.5rem', padding: 12, borderRadius: 16, cursor: 'pointer',
+              border: selectedAvatar === i ? '3px solid var(--primary)' : '3px solid transparent',
+              background: selectedAvatar === i ? '#f0eeff' : '#f7fafc',
+              transform: selectedAvatar === i ? 'scale(1.1)' : 'scale(1)', transition: 'all 0.2s'
+            }}>
+            {emoji}
+          </motion.button>
+        ))}
+      </div>
+
+      {/* Shop */}
+      <h3 style={{ marginBottom: 12, fontSize: 15 }}>🛍️ فروشگاه اکسسوری:</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {ACCESSORIES.map(acc => {
+          const owned = items.includes(acc.id)
+          const canBuy = student.coins >= acc.cost
+          return (
+            <motion.button key={acc.id} whileTap={{ scale: 0.95 }} onClick={() => buy(acc)}
+              style={{
+                padding: '14px', borderRadius: 16, cursor: owned ? 'default' : canBuy ? 'pointer' : 'not-allowed',
+                background: owned ? '#f0fff9' : '#f7fafc',
+                border: `2px solid ${owned ? '#06D6A0' : '#e2e8f0'}`,
+                opacity: !owned && !canBuy ? 0.5 : 1
+              }}>
+              <div style={{ fontSize: '2rem' }}>{acc.emoji}</div>
+              <div style={{ fontWeight: 600, fontSize: 14, marginTop: 4 }}>{acc.name}</div>
+              <div style={{ fontSize: 13, color: owned ? '#06D6A0' : '#FF9500', marginTop: 2 }}>
+                {owned ? '✓ خریداری شده' : `🪙 ${acc.cost} سکه`}
+              </div>
+            </motion.button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
