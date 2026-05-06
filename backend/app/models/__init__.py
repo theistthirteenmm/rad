@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..database import Base
@@ -59,6 +59,19 @@ class User(Base):
 
 # Alias for backward compat with progress router
 Student = User
+
+
+class LevelProgress(Base):
+    __tablename__ = 'level_progress'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    subject = Column(String, nullable=False)
+    game_type = Column(String, nullable=False)
+    stars = Column(Integer, default=0)
+    best_score = Column(Integer, default=0)
+    completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime, nullable=True)
+    __table_args__ = (UniqueConstraint('user_id', 'subject', 'game_type', name='uq_level_progress'),)
 
 
 class GameSession(Base):

@@ -44,9 +44,9 @@ export default function RewardModal({ stars, coins, onClose, onHome }: Props) {
             <div style={{ fontSize: 12, color: 'var(--text-light)' }}>ستاره</div>
           </div>
           <div>
-            <div style={{ fontSize: '2rem' }}>🪙</div>
+            <div style={{ fontSize: '2rem' }}>💎</div>
             <div style={{ fontWeight: 700, fontSize: 20 }}>+{coins}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-light)' }}>سکه</div>
+            <div style={{ fontSize: 12, color: 'var(--text-light)' }}>الماس</div>
           </div>
         </div>
 

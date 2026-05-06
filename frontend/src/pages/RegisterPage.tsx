@@ -14,13 +14,18 @@ const ROLES: { id: Role; label: string; emoji: string; color: string }[] = [
 const AVATARS = ['🦁', '🐯', '🐻', '🦊', '🐼', '🐸', '🦋', '🐬']
 
 function SelectField({
-  label, value, onChange, options, placeholder, color, disabled = false, hint
+  label, value, onChange, options, placeholder, color, disabled = false, hint, searchable = false
 }: {
   label: string; value: string; onChange: (v: string) => void
   options: { value: string; label: string }[]
-  placeholder: string; color: string; disabled?: boolean; hint?: string
+  placeholder: string; color: string; disabled?: boolean; hint?: string; searchable?: boolean
 }) {
-  return (
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const selectedLabel = options.find(o => o.value === value)?.label ?? ''
+  const filtered = options.filter(o => o.label.includes(query) || o.value.includes(query))
+
+  if (!searchable) return (
     <div style={{ marginBottom: 14 }}>
       <label style={{ fontSize: 13, color: 'var(--text-light)', display: 'block', marginBottom: 6 }}>{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled}
@@ -34,6 +39,75 @@ function SelectField({
         <option value="">{placeholder}</option>
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
+      {hint && <p style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>{hint}</p>}
+    </div>
+  )
+
+  return (
+    <div style={{ marginBottom: 14, position: 'relative' }}>
+      <label style={{ fontSize: 13, color: 'var(--text-light)', display: 'block', marginBottom: 6 }}>{label}</label>
+      <div
+        onClick={() => !disabled && setOpen(o => !o)}
+        style={{
+          width: '100%', padding: '12px 16px', borderRadius: 12, fontSize: 14,
+          border: `2px solid ${value ? color + '80' : open ? color : '#e2e8f0'}`,
+          background: disabled ? '#f5f5f5' : 'white', outline: 'none',
+          color: value ? 'var(--text)' : '#aaa', direction: 'rtl',
+          cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex',
+          justifyContent: 'space-between', alignItems: 'center', boxSizing: 'border-box'
+        }}>
+        <span>{value ? selectedLabel : placeholder}</span>
+        <span style={{ fontSize: 10, opacity: 0.5 }}>{open ? '▲' : '▼'}</span>
+      </div>
+      {open && !disabled && (
+        <div style={{
+          position: 'absolute', top: '100%', right: 0, left: 0, zIndex: 100,
+          background: 'white', border: `2px solid ${color}40`, borderRadius: 12,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden', marginTop: 4
+        }}>
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid #f0f0f0' }}>
+            <input
+              autoFocus
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="🔍 جستجو..."
+              style={{
+                width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0',
+                fontSize: 14, outline: 'none', direction: 'rtl', boxSizing: 'border-box'
+              }}
+              onFocus={e => e.target.style.borderColor = color}
+              onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+            />
+          </div>
+          <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+            <div
+              onClick={() => { onChange(''); setQuery(''); setOpen(false) }}
+              style={{ padding: '10px 16px', cursor: 'pointer', color: '#aaa', fontSize: 14, direction: 'rtl' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#f7fafc')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+              {placeholder}
+            </div>
+            {filtered.length === 0 && (
+              <div style={{ padding: '12px 16px', color: '#bbb', fontSize: 13, textAlign: 'center' }}>
+                موردی یافت نشد
+              </div>
+            )}
+            {filtered.map(o => (
+              <div key={o.value}
+                onClick={() => { onChange(o.value); setQuery(''); setOpen(false) }}
+                style={{
+                  padding: '10px 16px', cursor: 'pointer', fontSize: 14, direction: 'rtl',
+                  background: o.value === value ? color + '15' : 'white',
+                  color: o.value === value ? color : 'var(--text)', fontWeight: o.value === value ? 600 : 400
+                }}
+                onMouseEnter={e => { if (o.value !== value) e.currentTarget.style.background = '#f7fafc' }}
+                onMouseLeave={e => { if (o.value !== value) e.currentTarget.style.background = 'white' }}>
+                {o.value === value && '✓ '}{o.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {hint && <p style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>{hint}</p>}
     </div>
   )
@@ -305,6 +379,7 @@ export default function RegisterPage() {
             {role !== 'admin' && (
               <SelectField label="مدرسه" value={schoolId} onChange={setSchoolId}
                 options={schoolOptions} placeholder="-- مدرسه را انتخاب کنید --" color={active.color}
+                searchable={true}
                 hint={schools.length === 0 ? 'هنوز هیچ مدرسه‌ای توسط مدیر ثبت نشده. لطفاً با مدیر مدرسه تماس بگیرید' : undefined} />
             )}
 

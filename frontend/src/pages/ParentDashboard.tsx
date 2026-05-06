@@ -78,7 +78,7 @@ export default function ParentDashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 14 }}>
               {[
                 { label: 'ستاره', value: child.stars, emoji: '⭐' },
-                { label: 'سکه', value: child.coins, emoji: '🪙' },
+                { label: 'الماس', value: child.coins, emoji: '💎' },
                 { label: 'سطح', value: child.level, emoji: '🏅' },
               ].map(s => (
                 <div key={s.label} style={{ textAlign: 'center' }}>

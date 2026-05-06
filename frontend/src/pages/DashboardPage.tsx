@@ -61,7 +61,7 @@ export default function DashboardPage() {
           </div>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 700 }}>{student.coins}</div>
-            <div style={{ fontSize: 12, opacity: 0.85 }}>🪙 سکه</div>
+            <div style={{ fontSize: 12, opacity: 0.85 }}>💎 الماس</div>
           </div>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 700 }}>{student.level}</div>

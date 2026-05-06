@@ -7,6 +7,7 @@ from .routers.schools import router as schools_router
 from .routers.users import router as users_router
 from .routers.progress import router as progress_router
 from .routers.leaderboard import router as leaderboard_router
+from .routers.levels import router as levels_router
 
 app = FastAPI(title='رادین - بازی آموزشی کلاس اول', version='2.0.0')
 
@@ -23,6 +24,7 @@ app.include_router(schools_router)
 app.include_router(users_router)
 app.include_router(progress_router)
 app.include_router(leaderboard_router)
+app.include_router(levels_router)
 app.include_router(games.router)
 
 

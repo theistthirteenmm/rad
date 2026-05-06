@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useStore } from '../store/useStore'
@@ -12,14 +13,25 @@ const SUBJECTS = [
   { id: 'writing', label: 'نگارش', emoji: '✏️', color: '#4ECDC4', bg: '#f0fffe', desc: 'خط و نوشتن' },
 ]
 
+type Mode = 'learn' | 'game'
+
 export default function HomePage() {
   const nav = useNavigate()
   const student = useStore((s) => s.student)
   const logout = useStore((s) => s.logout)
+  const [mode, setMode] = useState<Mode>('learn')
+
   if (!student) return null
 
-  const avatarEmoji = AVATARS[parseInt(student.avatar?.replace('avatar', '') || '0')] || '🦁'
+  const avatarVal = student.avatar || 'avatar0'
+  const isPhoto = avatarVal.startsWith('data:')
+  const avatarEmoji = !isPhoto ? (AVATARS[parseInt(avatarVal.replace('avatar', '') || '0')] || '🦁') : null
   const levelProgress = (student.stars % 50) / 50 * 100
+
+  const handleSubject = (id: string) => {
+    if (mode === 'learn') nav(`/learn?s=${id}`)
+    else nav(`/${id}`)
+  }
 
   return (
     <div className="container">
@@ -27,12 +39,15 @@ export default function HomePage() {
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div
-            onClick={() => nav('/character')}
-            style={{ fontSize: '2.5rem', background: '#f0eeff', borderRadius: '50%',
-              width: 52, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-          >
-            {avatarEmoji}
+          <div onClick={() => nav('/character')}
+            style={{ borderRadius: '50%', width: 52, height: 52, overflow: 'hidden',
+              background: '#f0eeff', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+              border: isPhoto ? '2px solid var(--primary)' : 'none' }}>
+            {isPhoto
+              ? <img src={avatarVal} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <span style={{ fontSize: '2.5rem' }}>{avatarEmoji}</span>
+            }
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 16 }}>سلام {student.name.split(' ')[0]}! 👋</div>
@@ -61,9 +76,9 @@ export default function HomePage() {
             <div style={{ fontSize: 12, color: 'var(--text-light)' }}>ستاره</div>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem' }}>🪙</div>
+            <div style={{ fontSize: '1.5rem' }}>💎</div>
             <div style={{ fontWeight: 700, fontSize: 18 }}>{student.coins}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-light)' }}>سکه</div>
+            <div style={{ fontSize: 12, color: 'var(--text-light)' }}>الماس</div>
           </div>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '1.5rem' }}>🏅</div>
@@ -79,33 +94,65 @@ export default function HomePage() {
         </div>
       </motion.div>
 
-      {/* Subject Grid */}
-      <h2 style={{ fontSize: 16, marginBottom: 12, color: 'var(--text-light)' }}>📚 انتخاب درس:</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {SUBJECTS.map((subj, i) => (
-          <motion.button
-            key={subj.id}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.15 + i * 0.07 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => nav(`/${subj.id}`)}
-            style={{
-              background: subj.bg, borderRadius: 20, padding: '20px 16px',
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              gap: 8, border: `2px solid ${subj.color}22`, cursor: 'pointer',
-              gridColumn: i === 4 ? 'span 2' : 'span 1'
-            }}
-          >
-            <div style={{ fontSize: '2.5rem' }}>{subj.emoji}</div>
-            <div style={{ fontWeight: 700, color: subj.color, fontSize: 16 }}>{subj.label}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-light)' }}>{subj.desc}</div>
-          </motion.button>
-        ))}
+      {/* Mode Toggle */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+        <motion.button whileTap={{ scale: 0.97 }} onClick={() => setMode('learn')}
+          style={{ padding: '16px 12px', borderRadius: 18, cursor: 'pointer', textAlign: 'center',
+            background: mode === 'learn' ? 'linear-gradient(135deg,#667eea,#764ba2)' : '#f7fafc',
+            border: mode === 'learn' ? 'none' : '2px solid #e2e8f0',
+            color: mode === 'learn' ? 'white' : 'var(--text-light)',
+            boxShadow: mode === 'learn' ? '0 4px 15px rgba(102,126,234,0.4)' : 'none',
+            transition: 'all 0.25s' }}>
+          <div style={{ fontSize: '1.8rem', marginBottom: 4 }}>📚</div>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>یادگیری</div>
+          <div style={{ fontSize: 11, marginTop: 2, opacity: 0.8 }}>مطالعه و کشف</div>
+        </motion.button>
+        <motion.button whileTap={{ scale: 0.97 }} onClick={() => setMode('game')}
+          style={{ padding: '16px 12px', borderRadius: 18, cursor: 'pointer', textAlign: 'center',
+            background: mode === 'game' ? 'linear-gradient(135deg,#f093fb,#f5576c)' : '#f7fafc',
+            border: mode === 'game' ? 'none' : '2px solid #e2e8f0',
+            color: mode === 'game' ? 'white' : 'var(--text-light)',
+            boxShadow: mode === 'game' ? '0 4px 15px rgba(245,87,108,0.4)' : 'none',
+            transition: 'all 0.25s' }}>
+          <div style={{ fontSize: '1.8rem', marginBottom: 4 }}>🎮</div>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>بازی و مسابقه</div>
+          <div style={{ fontSize: 11, marginTop: 2, opacity: 0.8 }}>مراحل و امتیاز</div>
+        </motion.button>
       </div>
 
+      {/* Mode description */}
+      <motion.div key={mode} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+        style={{ marginBottom: 14 }}>
+        <h2 style={{ fontSize: 14, color: 'var(--text-light)', marginBottom: 10 }}>
+          {mode === 'learn' ? '📖 انتخاب موضوع یادگیری:' : '🕹️ انتخاب درس بازی:'}
+        </h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {SUBJECTS.map((subj, i) => (
+            <motion.button
+              key={subj.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.06 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleSubject(subj.id)}
+              style={{
+                background: subj.bg, borderRadius: 20, padding: '20px 16px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                gap: 8, border: `2px solid ${subj.color}22`, cursor: 'pointer',
+                gridColumn: i === 4 ? 'span 2' : 'span 1'
+              }}>
+              <div style={{ fontSize: '2.5rem' }}>{subj.emoji}</div>
+              <div style={{ fontWeight: 700, color: subj.color, fontSize: 16 }}>{subj.label}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-light)' }}>
+                {mode === 'learn' ? subj.desc : '🎮 ' + subj.desc}
+              </div>
+            </motion.button>
+          ))}
+        </div>
+      </motion.div>
+
       <button onClick={logout}
-        style={{ marginTop: 20, width: '100%', padding: '10px', background: 'none',
+        style={{ marginTop: 8, width: '100%', padding: '10px', background: 'none',
           color: 'var(--text-light)', fontSize: 13, borderRadius: 12, border: '1px solid #e2e8f0' }}>
         🚪 خروج از حساب
       </button>

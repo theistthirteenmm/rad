@@ -15,6 +15,7 @@ import ParentDashboard from './pages/ParentDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import AboutPage from './pages/AboutPage'
 import LeaderboardPage from './pages/LeaderboardPage'
+import LearningHubPage from './pages/LearningHubPage'
 
 function Guard({ children, role }: { children: JSX.Element; role?: string }) {
   const user = useStore(s => s.user)
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/writing" element={<Guard role="student"><WritingGamesPage /></Guard>} />
         <Route path="/dashboard" element={<Guard role="student"><DashboardPage /></Guard>} />
         <Route path="/character" element={<Guard role="student"><CharacterPage /></Guard>} />
+        <Route path="/learn" element={<Guard role="student"><LearningHubPage /></Guard>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

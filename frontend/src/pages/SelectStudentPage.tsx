@@ -75,7 +75,7 @@ export default function SelectStudentPage() {
                   </div>
                   <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 13 }}>
                     <span>⭐ {s.stars}</span>
-                    <span>🪙 {s.coins}</span>
+                    <span>💎 {s.coins}</span>
                     <span>🏅 سطح {s.level}</span>
                   </div>
                 </div>

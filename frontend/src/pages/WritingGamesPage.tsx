@@ -1,140 +1,74 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useSaveSession } from '../hooks/useApi'
-import { useStore } from '../store/useStore'
+import { useTimer } from '../hooks/useTimer'
+import { useLevelProgress } from '../hooks/useLevelProgress'
+import { SUBJECT_LEVELS, type LevelDef } from '../lib/levels'
+import LevelMap from '../components/LevelMap'
 import RewardModal from '../components/RewardModal'
+import TeacherVoice from '../components/TeacherVoice'
 
-const LETTERS = ['الف', 'ب', 'پ', 'ت', 'ث', 'ج', 'چ', 'ح', 'خ', 'د']
+const COLOR = '#4ECDC4'
+const SUBJECT = 'writing'
+
+const LETTERS = ['الف','ب','پ','ت','ث','ج','چ','ح','خ','د']
 const WORDS_WRITE = [
-  { word: 'آب', hint: '💧' },
-  { word: 'سیب', hint: '🍎' },
-  { word: 'گل', hint: '🌸' },
-  { word: 'ماه', hint: '🌙' },
-  { word: 'آفتاب', hint: '☀️' },
+  { word:'آب', hint:'💧' }, { word:'سیب', hint:'🍎' },
+  { word:'گل', hint:'🌸' }, { word:'ماه', hint:'🌙' }, { word:'آفتاب', hint:'☀️' },
 ]
 
-export default function WritingGamesPage() {
-  const nav = useNavigate()
-  const saveSession = useSaveSession()
-  const [game, setGame] = useState<null | 'trace' | 'dictation'>(null)
-  const [reward, setReward] = useState<any>(null)
-
-  const handleComplete = async (gameType: string, score: number, stars: number) => {
-    await saveSession({ subject: 'negaresh', game_type: gameType, score, stars_earned: stars, coins_earned: stars * 5, duration_seconds: 60, completed: true })
-    setReward({ stars, coins: stars * 5 })
-  }
-
-  if (reward) return (
-    <div className="container">
-      <RewardModal stars={reward.stars} coins={reward.coins} onClose={() => { setReward(null); setGame(null) }} onHome={() => nav('/')} />
-    </div>
-  )
-
-  if (game === 'trace') return <LetterTrace onComplete={(s, st) => handleComplete('trace', s, st)} onBack={() => setGame(null)} />
-  if (game === 'dictation') return <WordDictation onComplete={(s, st) => handleComplete('dictation', s, st)} onBack={() => setGame(null)} />
-
-  return (
-    <div className="container">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <button onClick={() => nav('/')} style={{ background: 'none', fontSize: 20 }}>←</button>
-        <h1 style={{ fontSize: 22, color: '#4ECDC4' }}>✏️ درس نگارش</h1>
-      </div>
-
-      {[
-        { id: 'trace', icon: '✏️', title: 'خط‌نویس', desc: 'روی صفحه لمسی حروف بنویس', color: '#4ECDC4' },
-        { id: 'dictation', icon: '🖼️', title: 'نقاشی کلمه', desc: 'کلمه رو بنویس، نقاشیش ظاهر بشه', color: '#FF6584' },
-      ].map((g, i) => (
-        <motion.button key={g.id}
-          initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => setGame(g.id as any)}
-          className="card"
-          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer' }}>
-          <div style={{ fontSize: '2.5rem', background: `${g.color}22`, borderRadius: 16,
-            width: 60, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{g.icon}</div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontWeight: 700, fontSize: 17, color: g.color }}>{g.title}</div>
-            <div style={{ color: 'var(--text-light)', fontSize: 13, marginTop: 2 }}>{g.desc}</div>
-          </div>
-        </motion.button>
-      ))}
-    </div>
-  )
-}
-
-function LetterTrace({ onComplete, onBack }: any) {
+function LetterTrace({ onComplete }: any) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [drawing, setDrawing] = useState(false)
   const [letterIdx, setLetterIdx] = useState(0)
   const [score, setScore] = useState(0)
   const [hasDrawn, setHasDrawn] = useState(false)
-
   const letter = LETTERS[letterIdx]
 
-  const startDraw = (e: any) => {
-    setDrawing(true)
-    setHasDrawn(true)
+  const getPos = (e: any) => {
     const canvas = canvasRef.current!
-    const ctx = canvas.getContext('2d')!
     const rect = canvas.getBoundingClientRect()
-    const x = (e.touches?.[0]?.clientX ?? e.clientX) - rect.left
-    const y = (e.touches?.[0]?.clientY ?? e.clientY) - rect.top
-    ctx.beginPath()
-    ctx.moveTo(x, y)
+    return {
+      x: (e.touches?.[0]?.clientX ?? e.clientX) - rect.left,
+      y: (e.touches?.[0]?.clientY ?? e.clientY) - rect.top,
+    }
   }
-
+  const startDraw = (e: any) => {
+    setDrawing(true); setHasDrawn(true)
+    const { x, y } = getPos(e)
+    const ctx = canvasRef.current!.getContext('2d')!
+    ctx.beginPath(); ctx.moveTo(x, y)
+  }
   const draw = (e: any) => {
     if (!drawing) return
-    const canvas = canvasRef.current!
-    const ctx = canvas.getContext('2d')!
-    const rect = canvas.getBoundingClientRect()
-    const x = (e.touches?.[0]?.clientX ?? e.clientX) - rect.left
-    const y = (e.touches?.[0]?.clientY ?? e.clientY) - rect.top
-    ctx.lineTo(x, y)
-    ctx.strokeStyle = '#6C63FF'
-    ctx.lineWidth = 5
-    ctx.lineCap = 'round'
-    ctx.stroke()
+    const { x, y } = getPos(e)
+    const ctx = canvasRef.current!.getContext('2d')!
+    ctx.lineTo(x, y); ctx.strokeStyle = COLOR; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.stroke()
   }
-
-  const stopDraw = () => setDrawing(false)
-
   const clear = () => {
-    const canvas = canvasRef.current!
-    const ctx = canvas.getContext('2d')!
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    canvasRef.current!.getContext('2d')!.clearRect(0, 0, 400, 200)
     setHasDrawn(false)
   }
-
   const next = () => {
-    setScore(s => s + 10)
-    clear()
-    if (letterIdx + 1 >= LETTERS.length) onComplete(score + 10, 3)
+    const ns = score + 10; setScore(ns); clear()
+    if (letterIdx + 1 >= LETTERS.length) onComplete(ns, 3)
     else setLetterIdx(i => i + 1)
   }
 
   return (
-    <div className="container">
-      <button onClick={onBack} style={{ marginBottom: 16, background: 'none', color: 'var(--text-light)', fontSize: 14 }}>← برگشت</button>
-      <h2 style={{ marginBottom: 8, color: '#4ECDC4' }}>✏️ خط‌نویس</h2>
-
-      <div style={{ marginBottom: 8, color: 'var(--text-light)', fontSize: 13 }}>{letterIdx + 1} از {LETTERS.length}</div>
-
+    <div>
+      <div style={{ marginBottom: 8, fontSize: 12, color: 'var(--text-light)' }}>{letterIdx + 1} از {LETTERS.length}</div>
       <div className="card" style={{ textAlign: 'center', marginBottom: 12 }}>
-        <p style={{ fontSize: 14, color: 'var(--text-light)', marginBottom: 4 }}>این حرف را بنویس:</p>
-        <p style={{ fontSize: 60, fontWeight: 700, color: '#4ECDC4' }}>{letter}</p>
+        <TeacherVoice text={`این حرف را بنویس: ${letter}`}
+          style={{ justifyContent: 'center', marginBottom: 4, color: 'var(--text-light)' }} />
+        <p style={{ fontSize: 56, fontWeight: 700, color: COLOR }}>{letter}</p>
       </div>
-
-      <div style={{ position: 'relative', background: 'white', borderRadius: 16,
-        border: '2px solid #4ECDC4', overflow: 'hidden', marginBottom: 12 }}>
-        <canvas
-          ref={canvasRef}
-          width={400} height={200}
-          style={{ width: '100%', height: 200, touchAction: 'none', display: 'block' }}
-          onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw}
-          onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
-        />
+      <div style={{ position: 'relative', background: 'white', borderRadius: 16, border: `2px solid ${COLOR}`, overflow: 'hidden', marginBottom: 12 }}>
+        <canvas ref={canvasRef} width={400} height={180}
+          style={{ width: '100%', height: 180, touchAction: 'none', display: 'block' }}
+          onMouseDown={startDraw} onMouseMove={draw} onMouseUp={() => setDrawing(false)}
+          onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={() => setDrawing(false)} />
         {!hasDrawn && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
             justifyContent: 'center', color: '#ccc', fontSize: 14, pointerEvents: 'none' }}>
@@ -142,11 +76,9 @@ function LetterTrace({ onComplete, onBack }: any) {
           </div>
         )}
       </div>
-
       <div style={{ display: 'flex', gap: 10 }}>
-        <button className="btn" onClick={clear}
-          style={{ background: '#ffe0e0', color: '#FF6584', width: '40%' }}>🗑️ پاک کن</button>
-        <button className="btn btn-success" onClick={next} disabled={!hasDrawn} style={{ width: '60%' }}>
+        <button className="btn" onClick={clear} style={{ background: '#ffe0e0', color: '#FF6584', flex: 1 }}>🗑️ پاک</button>
+        <button className="btn btn-success" onClick={next} disabled={!hasDrawn} style={{ flex: 2 }}>
           {letterIdx + 1 >= LETTERS.length ? '🏆 پایان!' : '← بعدی'}
         </button>
       </div>
@@ -154,69 +86,131 @@ function LetterTrace({ onComplete, onBack }: any) {
   )
 }
 
-function WordDictation({ onComplete, onBack }: any) {
+function WordDictation({ onComplete, timerSec }: any) {
   const [idx, setIdx] = useState(0)
   const [input, setInput] = useState('')
-  const [status, setStatus] = useState<'idle' | 'correct' | 'wrong'>('idle')
+  const [status, setStatus] = useState<'idle'|'correct'|'wrong'|'timeout'>('idle')
   const [score, setScore] = useState(0)
   const [shown, setShown] = useState(false)
-
   const item = WORDS_WRITE[idx]
 
+  const advance = (correct: boolean) => {
+    timer.stop()
+    const ns = correct ? score + 15 : score
+    setScore(ns)
+    setTimeout(() => {
+      if (idx + 1 >= WORDS_WRITE.length) onComplete(ns, ns >= 40 ? 3 : 2)
+      else { setIdx(i => i + 1); setInput(''); setStatus('idle'); setShown(false); timer.reset(); timer.start() }
+    }, 1000)
+  }
+
+  const timer = useTimer(timerSec, () => {
+    if (status !== 'idle') return
+    setStatus('timeout'); advance(false)
+  })
+
   const check = () => {
+    if (status !== 'idle') return
     if (input.trim() === item.word) {
-      setStatus('correct')
-      setScore(s => s + 15)
-      setShown(true)
-      setTimeout(() => {
-        if (idx + 1 >= WORDS_WRITE.length) onComplete(score + 15, score >= 40 ? 3 : 2)
-        else { setIdx(i => i + 1); setInput(''); setStatus('idle'); setShown(false) }
-      }, 1200)
+      setStatus('correct'); setShown(true); advance(true)
     } else {
-      setStatus('wrong')
-      setTimeout(() => setStatus('idle'), 800)
+      setStatus('wrong'); setTimeout(() => setStatus('idle'), 800)
     }
   }
 
+  const timerColor = timer.urgent ? '#FF6584' : timer.timeLeft <= 10 ? '#FF9800' : COLOR
+
   return (
-    <div className="container">
-      <button onClick={onBack} style={{ marginBottom: 16, background: 'none', color: 'var(--text-light)', fontSize: 14 }}>← برگشت</button>
-      <h2 style={{ marginBottom: 16, color: '#FF6584' }}>🖼️ نقاشی کلمه</h2>
-
-      <div style={{ marginBottom: 8, color: 'var(--text-light)', fontSize: 13 }}>{idx + 1} از {WORDS_WRITE.length}</div>
-
+    <div>
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: timerColor, marginBottom: 4 }}>
+          <span>⏱ {timer.timeLeft}ث</span><span>{idx + 1} / {WORDS_WRITE.length}</span>
+        </div>
+        <div style={{ height: 8, background: '#f0f0f0', borderRadius: 4 }}>
+          <motion.div animate={{ width: `${timer.pct}%` }} transition={{ duration: 0.5 }}
+            style={{ height: '100%', background: timerColor, borderRadius: 4 }} />
+        </div>
+      </div>
       <motion.div key={idx} initial={{ scale: 0 }} animate={{ scale: 1 }}
-        className="card" style={{ textAlign: 'center', marginBottom: 16 }}>
-        <motion.div
-          animate={shown ? { scale: [1, 1.3, 1], rotate: [0, 10, -10, 0] } : {}}
-          style={{ fontSize: '5rem' }}>
+        className="card" style={{ textAlign: 'center', marginBottom: 14 }}>
+        <motion.div animate={shown ? { scale: [1,1.3,1], rotate:[0,10,-10,0] } : {}} style={{ fontSize: '4.5rem' }}>
           {item.hint}
         </motion.div>
-        {shown && (
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            style={{ fontSize: 28, fontWeight: 700, color: '#06D6A0', marginTop: 8 }}>
-            ✓ {item.word}
-          </motion.p>
-        )}
-        {!shown && <p style={{ color: 'var(--text-light)', fontSize: 13, marginTop: 8 }}>نام این را بنویس:</p>}
+        {shown
+          ? <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ fontSize: 26, fontWeight: 700, color: '#06D6A0', marginTop: 8 }}>✓ {item.word}</motion.p>
+          : <TeacherVoice text="نام این رو بنویس" autoSpeak={false}
+              style={{ justifyContent: 'center', marginTop: 8, color: 'var(--text-light)' }} />
+        }
       </motion.div>
-
-      <input
-        value={input}
-        onChange={e => setInput(e.target.value)}
+      <input value={input} onChange={e => setInput(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && check()}
         placeholder="کلمه را بنویس..."
-        style={{
-          width: '100%', padding: '14px', borderRadius: 14, fontSize: 20, textAlign: 'center',
+        style={{ width: '100%', padding: 14, borderRadius: 14, fontSize: 20, textAlign: 'center',
           border: `2px solid ${status === 'correct' ? '#06D6A0' : status === 'wrong' ? '#FF6584' : '#e2e8f0'}`,
-          outline: 'none', marginBottom: 12, direction: 'rtl'
-        }}
-      />
-
+          outline: 'none', marginBottom: 12, direction: 'rtl', boxSizing: 'border-box' }} />
       <button className={`btn ${status === 'correct' ? 'btn-success' : 'btn-primary'}`}
         onClick={check} disabled={!input || status === 'correct'}>
-        {status === 'correct' ? '🎉 درست!' : status === 'wrong' ? '❌ دوباره!' : '✓ بررسی'}
+        {status === 'correct' ? '🎉 درست!' : status === 'wrong' ? '❌ دوباره!' : status === 'timeout' ? '⏱ وقت تموم شد' : '✓ بررسی'}
       </button>
+    </div>
+  )
+}
+
+export default function WritingGamesPage() {
+  const nav = useNavigate()
+  const saveSession = useSaveSession()
+  const { progress, saveLevel } = useLevelProgress(SUBJECT)
+  const [activeLevel, setActiveLevel] = useState<LevelDef | null>(null)
+  const [reward, setReward] = useState<any>(null)
+
+  const handleComplete = async (gameType: string, score: number, stars: number) => {
+    await saveSession({ subject: SUBJECT, game_type: gameType, score, stars_earned: stars, coins_earned: stars * 5, duration_seconds: 60, completed: true })
+    await saveLevel(gameType, stars, score)
+    setReward({ stars, coins: stars * 5 })
+  }
+
+  if (reward) return (
+    <div className="container">
+      <RewardModal stars={reward.stars} coins={reward.coins}
+        onClose={() => { setReward(null); setActiveLevel(null) }} onHome={() => nav('/')} />
+    </div>
+  )
+
+  if (activeLevel) {
+    const gt = activeLevel.gameType
+    return (
+      <div className="container">
+        <button onClick={() => setActiveLevel(null)}
+          style={{ marginBottom: 16, background: 'none', color: 'var(--text-light)', fontSize: 14, border: 'none', cursor: 'pointer' }}>
+          ← برگشت
+        </button>
+        <h2 style={{ marginBottom: 16, color: COLOR }}>{activeLevel.icon} {activeLevel.title}</h2>
+        {gt === 'trace' && <LetterTrace onComplete={(s: number, st: number) => handleComplete(gt, s, st)} />}
+        {gt === 'dictation' && <WordDictation timerSec={activeLevel.timerSeconds ?? 30} onComplete={(s: number, st: number) => handleComplete(gt, s, st)} />}
+      </div>
+    )
+  }
+
+  const totalDone = Object.values(progress).filter(r => r.completed).length
+  const totalStars = Object.values(progress).reduce((a, r) => a + (r.stars || 0), 0)
+
+  return (
+    <div className="container">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+        <button onClick={() => nav('/')} style={{ background: 'none', fontSize: 20, border: 'none', cursor: 'pointer' }}>←</button>
+        <h1 style={{ fontSize: 22, color: COLOR }}>✏️ درس نگارش</h1>
+      </div>
+      <div className="card" style={{ marginBottom: 20, padding: '12px 16px',
+        background: 'linear-gradient(135deg,#f0fffe,#fff)', border: `2px solid ${COLOR}20` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+          <div><div style={{ fontSize: 22, fontWeight: 800, color: COLOR }}>{totalDone}</div><div style={{ fontSize: 11, color: 'var(--text-light)' }}>مرحله تموم</div></div>
+          <div style={{ width: 1, background: '#f0f0f0' }} />
+          <div><div style={{ fontSize: 22, fontWeight: 800, color: '#FFB703' }}>{totalStars}⭐</div><div style={{ fontSize: 11, color: 'var(--text-light)' }}>ستاره</div></div>
+          <div style={{ width: 1, background: '#f0f0f0' }} />
+          <div><div style={{ fontSize: 22, fontWeight: 800, color: '#06D6A0' }}>{SUBJECT_LEVELS.writing.filter(l => !l.comingSoon).length}</div><div style={{ fontSize: 11, color: 'var(--text-light)' }}>کل مراحل</div></div>
+        </div>
+      </div>
+      <LevelMap levels={SUBJECT_LEVELS.writing} progress={progress} color={COLOR} onPlay={setActiveLevel} />
     </div>
   )
 }

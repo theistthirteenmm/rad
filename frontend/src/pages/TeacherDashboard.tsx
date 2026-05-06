@@ -65,7 +65,7 @@ export default function TeacherDashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
             {[
               { label: 'ستاره', value: selected.stars, emoji: '⭐' },
-              { label: 'سکه', value: selected.coins, emoji: '🪙' },
+              { label: 'الماس', value: selected.coins, emoji: '💎' },
               { label: 'سطح', value: selected.level, emoji: '🏅' },
             ].map(s => (
               <div key={s.label} className="card" style={{ textAlign: 'center', padding: 16 }}>
