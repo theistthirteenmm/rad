@@ -1,0 +1,5 @@
+This is a placeholder APK file. In production, you need to build a real APK using:
+1. npm run build
+2. npx cap add android
+3. npx cap sync android
+4. Open Android Studio and build signed APK
