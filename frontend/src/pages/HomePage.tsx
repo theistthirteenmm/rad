@@ -63,10 +63,6 @@ export default function HomePage() {
             style={{ background: 'var(--primary)', color: 'white', borderRadius: 12, padding: '8px 14px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
             📊 گزارش
           </button>
-          <button onClick={() => nav('/download')}
-            style={{ background: '#f0fff9', color: '#06D6A0', borderRadius: 12, padding: '8px 12px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-            📱
-          </button>
         </div>
       </motion.div>
 
