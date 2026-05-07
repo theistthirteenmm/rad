@@ -6,7 +6,12 @@ import asyncio
 import json
 import random
 import time
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from sqlalchemy.ext.asyncio import AsyncSession
+from ..database import get_db
+from ..models import User
+from .auth import get_current_user
 from ..cache import get_redis
 
 router = APIRouter(prefix='/api/battle', tags=['battle'])
@@ -44,6 +49,13 @@ _rooms: dict[str, dict] = {}
 
 # ── صف انتظار: { grade_id: [(uid, name, avatar, ws, ts)] } ──────────────────
 _queue: dict[str, list] = {}
+
+# ── دعوت‌نامه‌های خصوصی: { invite_id: {...} } ───────────────────────────────
+# { invite_id: { from_id, from_name, from_avatar, to_id, room_id, created_at } }
+_invites: dict[str, dict] = {}
+
+# ── اتاق‌های خصوصی در انتظار حریف: { room_id: { uid, ws, name, avatar, ts } } ─
+_private_waiting: dict[str, dict] = {}
 
 
 async def _send(ws: WebSocket, msg: dict):
@@ -284,6 +296,171 @@ async def battle_ws(
 
         # اطلاع به حریف
         if room_id and room_id in _rooms:
+            room = _rooms[room_id]
+            room['state']['phase'] = 'finished'
+            for uid, ws in room['players'].items():
+                if uid != user_id:
+                    await _send(ws, {'type': 'opponent_left'})
+
+
+# ── دعوت‌نامه‌های خصوصی ────────────────────────────────────────────────────
+
+@router.post('/invite/{to_user_id}')
+async def create_battle_invite(
+    to_user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # پاک‌سازی دعوت‌های قدیمی
+    now = time.time()
+    expired = [k for k, v in _invites.items() if now - v['created_at'] > 120]
+    for k in expired:
+        _invites.pop(k, None)
+
+    invite_id = str(uuid.uuid4())[:8]
+    room_id = f"private_{invite_id}"
+    _invites[invite_id] = {
+        'from_id': str(current_user.id),
+        'from_name': current_user.name,
+        'from_avatar': current_user.avatar or 'avatar0',
+        'to_id': str(to_user_id),
+        'room_id': room_id,
+        'created_at': now,
+    }
+    return {'invite_id': invite_id, 'room_id': room_id}
+
+
+@router.get('/invites')
+async def get_my_invites(current_user: User = Depends(get_current_user)):
+    now = time.time()
+    my_uid = str(current_user.id)
+    result = [
+        {
+            'invite_id': k,
+            'from_id': v['from_id'],
+            'from_name': v['from_name'],
+            'from_avatar': v['from_avatar'],
+            'room_id': v['room_id'],
+        }
+        for k, v in _invites.items()
+        if v['to_id'] == my_uid and now - v['created_at'] <= 120
+    ]
+    return result
+
+
+@router.delete('/invite/{invite_id}')
+async def decline_invite(invite_id: str, current_user: User = Depends(get_current_user)):
+    _invites.pop(invite_id, None)
+    return {'ok': True}
+
+
+@router.websocket('/ws/private/{room_id}/{user_id}/{user_name}/{avatar}')
+async def private_battle_ws(
+    websocket: WebSocket,
+    room_id: str,
+    user_id: str,
+    user_name: str,
+    avatar: str,
+):
+    await websocket.accept()
+
+    try:
+        # پاک‌سازی اتاق‌های خصوصی منقضی
+        now = time.time()
+        expired = [k for k, v in _private_waiting.items() if now - v['ts'] > 120]
+        for k in expired:
+            _private_waiting.pop(k, None)
+
+        if room_id in _private_waiting:
+            # حریف منتظر بود — شروع بازی
+            waiter = _private_waiting.pop(room_id)
+            questions = _make_questions(10)
+
+            _rooms[room_id] = {
+                'players': {
+                    waiter['uid']: waiter['ws'],
+                    user_id: websocket,
+                },
+                'state': {
+                    'phase': 'countdown',
+                    'questions': questions,
+                    'current_q': -1,
+                    'q_answers': {},
+                    'positions': {waiter['uid']: 0, user_id: 0},
+                    'scores': {waiter['uid']: 0, user_id: 0},
+                    'started_at': 0,
+                }
+            }
+
+            await _send(waiter['ws'], {
+                'type': 'matched',
+                'room_id': room_id,
+                'my_id': waiter['uid'],
+                'opponent': {'id': user_id, 'name': user_name, 'avatar': avatar},
+            })
+            await _send(websocket, {
+                'type': 'matched',
+                'room_id': room_id,
+                'my_id': user_id,
+                'opponent': {'id': waiter['uid'], 'name': waiter['name'], 'avatar': waiter['avatar']},
+            })
+
+            asyncio.create_task(_run_game(room_id))
+
+        elif room_id in _rooms:
+            # اتاق در حال بازی است — رد کن
+            await _send(websocket, {'type': 'error', 'message': 'اتاق پر است'})
+            return
+
+        else:
+            # منتظر بمان
+            _private_waiting[room_id] = {
+                'uid': user_id,
+                'name': user_name,
+                'avatar': avatar,
+                'ws': websocket,
+                'ts': time.time(),
+            }
+            await _send(websocket, {'type': 'waiting'})
+
+        # دریافت پیام‌ها
+        while True:
+            raw = await websocket.receive_text()
+            msg = json.loads(raw)
+
+            if msg['type'] == 'answer' and room_id in _rooms:
+                room = _rooms[room_id]
+                state = room['state']
+                if state['phase'] != 'playing':
+                    continue
+                qi = state['current_q']
+                if qi < 0 or qi >= len(state['questions']):
+                    continue
+                q = state['questions'][qi]
+                correct = msg['answer'] == q['a']
+                if user_id not in state['q_answers']:
+                    state['q_answers'][user_id] = correct
+                    if correct:
+                        state['positions'][user_id] = min(
+                            state['positions'][user_id] + FUEL_PER_Q, RACE_DISTANCE
+                        )
+                        state['scores'][user_id] = state['scores'].get(user_id, 0) + 10
+                    await _broadcast(room_id, {
+                        'type': 'player_answered',
+                        'uid': user_id,
+                        'correct': correct,
+                        'positions': state['positions'],
+                    })
+
+            elif msg['type'] == 'cancel':
+                _private_waiting.pop(room_id, None)
+                break
+
+    except WebSocketDisconnect:
+        pass
+    finally:
+        _private_waiting.pop(room_id, None)
+        if room_id in _rooms:
             room = _rooms[room_id]
             room['state']['phase'] = 'finished'
             for uid, ws in room['players'].items():

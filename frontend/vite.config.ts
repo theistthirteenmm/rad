@@ -50,6 +50,7 @@ export default defineConfig({
         target: process.env.API_TARGET || 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
+        ws: true,
       }
     }
   }

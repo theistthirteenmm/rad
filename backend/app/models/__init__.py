@@ -62,6 +62,16 @@ class User(Base):
 Student = User
 
 
+class Friendship(Base):
+    __tablename__ = 'friendships'
+    id = Column(Integer, primary_key=True)
+    requester_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    addressee_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    status = Column(String, default='pending')  # pending / accepted
+    created_at = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (UniqueConstraint('requester_id', 'addressee_id', name='uq_friendship'),)
+
+
 class LevelProgress(Base):
     __tablename__ = 'level_progress'
     id = Column(Integer, primary_key=True)
