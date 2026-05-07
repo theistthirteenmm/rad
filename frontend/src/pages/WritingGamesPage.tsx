@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useSaveSession } from '../hooks/useApi'
@@ -18,69 +18,279 @@ const WORDS_WRITE = [
   { word:'گل', hint:'🌸' }, { word:'ماه', hint:'🌙' }, { word:'آفتاب', hint:'☀️' },
 ]
 
+// ─── الگوی نقطه‌های هر حرف (مختصات نسبی 0-1 روی canvas) ──────────────────────
+const LETTER_PATTERNS: Record<string, { x: number; y: number }[][]> = {
+  'الف': [
+    [{ x: 0.5, y: 0.1 }, { x: 0.5, y: 0.9 }],
+  ],
+  'ب': [
+    [{ x: 0.2, y: 0.5 }, { x: 0.5, y: 0.7 }, { x: 0.8, y: 0.5 }, { x: 0.8, y: 0.35 }],
+  ],
+  'پ': [
+    [{ x: 0.2, y: 0.5 }, { x: 0.5, y: 0.7 }, { x: 0.8, y: 0.5 }, { x: 0.8, y: 0.35 }],
+  ],
+  'ت': [
+    [{ x: 0.2, y: 0.5 }, { x: 0.5, y: 0.7 }, { x: 0.8, y: 0.5 }],
+  ],
+  'ج': [
+    [{ x: 0.8, y: 0.3 }, { x: 0.8, y: 0.6 }, { x: 0.5, y: 0.8 }, { x: 0.2, y: 0.6 }],
+  ],
+  'د': [
+    [{ x: 0.7, y: 0.2 }, { x: 0.7, y: 0.7 }, { x: 0.3, y: 0.7 }],
+  ],
+  'ر': [
+    [{ x: 0.6, y: 0.2 }, { x: 0.6, y: 0.7 }, { x: 0.3, y: 0.8 }],
+  ],
+  'س': [
+    [{ x: 0.15, y: 0.5 }, { x: 0.35, y: 0.65 }, { x: 0.5, y: 0.5 }, { x: 0.65, y: 0.65 }, { x: 0.85, y: 0.5 }],
+  ],
+  'ک': [
+    [{ x: 0.7, y: 0.2 }, { x: 0.7, y: 0.8 }],
+    [{ x: 0.7, y: 0.5 }, { x: 0.3, y: 0.3 }],
+    [{ x: 0.7, y: 0.5 }, { x: 0.3, y: 0.7 }],
+  ],
+  'م': [
+    [{ x: 0.2, y: 0.4 }, { x: 0.5, y: 0.2 }, { x: 0.8, y: 0.4 }, { x: 0.8, y: 0.7 }, { x: 0.5, y: 0.85 }],
+  ],
+}
+
+const DEFAULT_PATTERN = [
+  [{ x: 0.5, y: 0.15 }, { x: 0.5, y: 0.85 }],
+]
+
+function getPattern(letter: string) {
+  return LETTER_PATTERNS[letter] ?? DEFAULT_PATTERN
+}
+
+/** محاسبه امتیاز شباهت مسیر کشیده‌شده با الگو */
+function calcSimilarity(
+  drawn: { x: number; y: number }[],
+  pattern: { x: number; y: number }[][],
+  W: number, H: number
+): number {
+  if (drawn.length < 5) return 0
+  // همه نقاط الگو رو یه لیست کن
+  const allPts = pattern.flat()
+  let matched = 0
+  for (const pt of allPts) {
+    const px = pt.x * W
+    const py = pt.y * H
+    // آیا نقطه‌ای از مسیر کشیده‌شده نزدیک این نقطه هست؟
+    const near = drawn.some(d => Math.hypot(d.x - px, d.y - py) < W * 0.18)
+    if (near) matched++
+  }
+  return matched / allPts.length
+}
+
 function LetterTrace({ onComplete }: any) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [drawing, setDrawing] = useState(false)
   const [letterIdx, setLetterIdx] = useState(0)
   const [score, setScore] = useState(0)
-  const [hasDrawn, setHasDrawn] = useState(false)
+  const [drawnPoints, setDrawnPoints] = useState<{ x: number; y: number }[]>([])
+  const [checked, setChecked] = useState(false)
+  const [similarity, setSimilarity] = useState(0)
   const letter = LETTERS[letterIdx]
+
+  const W = 340, H = 320
+
+  // رسم الگوی نقطه‌چین روی canvas
+  const drawPattern = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')!
+    ctx.clearRect(0, 0, W, H)
+
+    // خطوط راهنما
+    ctx.strokeStyle = '#e8e8e8'
+    ctx.lineWidth = 1
+    ctx.setLineDash([4, 4])
+    ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke()
+    ctx.setLineDash([])
+
+    // الگوی حرف با نقطه‌های راهنما
+    const pattern = getPattern(letter)
+    pattern.forEach(stroke => {
+      // خط نقطه‌چین بین نقاط
+      ctx.strokeStyle = `${COLOR}40`
+      ctx.lineWidth = 3
+      ctx.setLineDash([8, 6])
+      ctx.beginPath()
+      stroke.forEach((pt, i) => {
+        const x = pt.x * W, y = pt.y * H
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
+      })
+      ctx.stroke()
+      ctx.setLineDash([])
+
+      // دایره‌های نقطه راهنما
+      stroke.forEach((pt, i) => {
+        const x = pt.x * W, y = pt.y * H
+        ctx.beginPath()
+        ctx.arc(x, y, i === 0 ? 10 : 7, 0, Math.PI * 2)
+        ctx.fillStyle = i === 0 ? COLOR : `${COLOR}80`
+        ctx.fill()
+        if (i === 0) {
+          ctx.fillStyle = 'white'
+          ctx.font = 'bold 10px sans-serif'
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText('شروع', x, y)
+        }
+      })
+    })
+  }
+
+  useEffect(() => {
+    drawPattern()
+    setDrawnPoints([])
+    setChecked(false)
+    setSimilarity(0)
+  }, [letterIdx])
 
   const getPos = (e: any) => {
     const canvas = canvasRef.current!
     const rect = canvas.getBoundingClientRect()
+    const scaleX = W / rect.width
+    const scaleY = H / rect.height
     return {
-      x: (e.touches?.[0]?.clientX ?? e.clientX) - rect.left,
-      y: (e.touches?.[0]?.clientY ?? e.clientY) - rect.top,
+      x: ((e.touches?.[0]?.clientX ?? e.clientX) - rect.left) * scaleX,
+      y: ((e.touches?.[0]?.clientY ?? e.clientY) - rect.top) * scaleY,
     }
   }
+
   const startDraw = (e: any) => {
-    setDrawing(true); setHasDrawn(true)
-    const { x, y } = getPos(e)
+    e.preventDefault()
+    if (checked) return
+    setDrawing(true)
+    const pos = getPos(e)
     const ctx = canvasRef.current!.getContext('2d')!
-    ctx.beginPath(); ctx.moveTo(x, y)
+    ctx.beginPath()
+    ctx.moveTo(pos.x, pos.y)
+    setDrawnPoints(prev => [...prev, pos])
   }
+
   const draw = (e: any) => {
-    if (!drawing) return
-    const { x, y } = getPos(e)
+    e.preventDefault()
+    if (!drawing || checked) return
+    const pos = getPos(e)
     const ctx = canvasRef.current!.getContext('2d')!
-    ctx.lineTo(x, y); ctx.strokeStyle = COLOR; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.stroke()
+    ctx.lineTo(pos.x, pos.y)
+    ctx.strokeStyle = '#333'
+    ctx.lineWidth = 6
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.stroke()
+    setDrawnPoints(prev => [...prev, pos])
   }
+
+  const endDraw = () => setDrawing(false)
+
+  const checkDrawing = () => {
+    const sim = calcSimilarity(drawnPoints, getPattern(letter), W, H)
+    setSimilarity(sim)
+    setChecked(true)
+    if (sim >= 0.55) {
+      setScore(s => s + 10)
+    }
+  }
+
   const clear = () => {
-    canvasRef.current!.getContext('2d')!.clearRect(0, 0, 400, 200)
-    setHasDrawn(false)
+    drawPattern()
+    setDrawnPoints([])
+    setChecked(false)
+    setSimilarity(0)
   }
+
   const next = () => {
-    const ns = score + 10; setScore(ns); clear()
-    if (letterIdx + 1 >= LETTERS.length) onComplete(ns, 3)
-    else setLetterIdx(i => i + 1)
+    const ns = checked && similarity >= 0.55 ? score : score
+    if (letterIdx + 1 >= LETTERS.length) {
+      onComplete(ns, ns >= LETTERS.length * 8 ? 3 : ns >= LETTERS.length * 5 ? 2 : 1)
+    } else {
+      setLetterIdx(i => i + 1)
+    }
   }
+
+  const isGood = checked && similarity >= 0.55
 
   return (
     <div>
-      <div style={{ marginBottom: 8, fontSize: 12, color: 'var(--text-light)' }}>{letterIdx + 1} از {LETTERS.length}</div>
-      <div className="card" style={{ textAlign: 'center', marginBottom: 12 }}>
+      {/* Progress */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12,
+        color: 'var(--text-light)', marginBottom: 6 }}>
+        <span>حرف {letterIdx + 1} از {LETTERS.length}</span>
+        <span>⭐ {score}</span>
+      </div>
+      <div className="progress-bar" style={{ marginBottom: 14 }}>
+        <div className="progress-fill" style={{ width: `${(letterIdx / LETTERS.length) * 100}%` }} />
+      </div>
+
+      {/* حرف نمونه */}
+      <div className="card" style={{ textAlign: 'center', marginBottom: 12, padding: '12px 16px' }}>
         <TeacherVoice text={`این حرف را بنویس: ${letter}`}
           style={{ justifyContent: 'center', marginBottom: 4, color: 'var(--text-light)' }} />
-        <p style={{ fontSize: 56, fontWeight: 700, color: COLOR }}>{letter}</p>
+        <div style={{ fontSize: 72, fontWeight: 900, color: COLOR, lineHeight: 1 }}>{letter}</div>
       </div>
-      <div style={{ position: 'relative', background: 'white', borderRadius: 16, border: `2px solid ${COLOR}`, overflow: 'hidden', marginBottom: 12 }}>
-        <canvas ref={canvasRef} width={400} height={180}
-          style={{ width: '100%', height: 180, touchAction: 'none', display: 'block' }}
-          onMouseDown={startDraw} onMouseMove={draw} onMouseUp={() => setDrawing(false)}
-          onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={() => setDrawing(false)} />
-        {!hasDrawn && (
+
+      {/* canvas بزرگ */}
+      <div style={{
+        position: 'relative', background: 'white', borderRadius: 20,
+        border: `3px solid ${isGood ? '#06D6A0' : checked ? '#FF6584' : COLOR}`,
+        overflow: 'hidden', marginBottom: 12,
+        boxShadow: isGood ? '0 0 0 4px #06D6A020' : checked ? '0 0 0 4px #FF658420' : 'none',
+        transition: 'border-color 0.3s, box-shadow 0.3s',
+      }}>
+        <canvas
+          ref={canvasRef}
+          width={W} height={H}
+          style={{ width: '100%', height: 'auto', touchAction: 'none', display: 'block', cursor: 'crosshair' }}
+          onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
+          onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}
+        />
+        {drawnPoints.length === 0 && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
-            justifyContent: 'center', color: '#ccc', fontSize: 14, pointerEvents: 'none' }}>
-            اینجا بنویس ✏️
+            justifyContent: 'center', pointerEvents: 'none' }}>
+            <div style={{ fontSize: 14, color: '#bbb', textAlign: 'center' }}>
+              ✏️ روی نقطه «شروع» شروع کن<br/>و حرف را بکش
+            </div>
           </div>
         )}
       </div>
+
+      {/* نتیجه */}
+      {checked && (
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+          style={{ textAlign: 'center', marginBottom: 12, padding: '10px 16px',
+            borderRadius: 14, background: isGood ? '#f0fff9' : '#fff0f3',
+            border: `1.5px solid ${isGood ? '#06D6A040' : '#FF658440'}` }}>
+          <div style={{ fontSize: 24, marginBottom: 4 }}>{isGood ? '🎉' : '😅'}</div>
+          <div style={{ fontWeight: 700, color: isGood ? '#06D6A0' : '#FF6584', fontSize: 15 }}>
+            {isGood ? 'آفرین! خوب نوشتی!' : 'دوباره تلاش کن!'}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 2 }}>
+            شباهت: {Math.round(similarity * 100)}٪
+          </div>
+        </motion.div>
+      )}
+
+      {/* دکمه‌ها */}
       <div style={{ display: 'flex', gap: 10 }}>
-        <button className="btn" onClick={clear} style={{ background: '#ffe0e0', color: '#FF6584', flex: 1 }}>🗑️ پاک</button>
-        <button className="btn btn-success" onClick={next} disabled={!hasDrawn} style={{ flex: 2 }}>
-          {letterIdx + 1 >= LETTERS.length ? '🏆 پایان!' : '← بعدی'}
+        <button className="btn" onClick={clear}
+          style={{ background: '#ffe0e0', color: '#FF6584', flex: 1 }}>
+          🗑️ پاک
         </button>
+        {!checked ? (
+          <button className="btn btn-primary" onClick={checkDrawing}
+            disabled={drawnPoints.length < 5}
+            style={{ flex: 2, opacity: drawnPoints.length < 5 ? 0.5 : 1 }}>
+            ✓ بررسی
+          </button>
+        ) : (
+          <button className="btn btn-success" onClick={next} style={{ flex: 2 }}>
+            {letterIdx + 1 >= LETTERS.length ? '🏆 پایان!' : isGood ? 'بعدی ←' : 'رد کن ←'}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -164,9 +374,9 @@ export default function WritingGamesPage() {
   const [reward, setReward] = useState<any>(null)
 
   const handleComplete = async (gameType: string, score: number, stars: number) => {
-    await saveSession({ subject: SUBJECT, game_type: gameType, score, stars_earned: stars, coins_earned: stars * 5, duration_seconds: 60, completed: true })
+    const actual = await saveSession({ subject: SUBJECT, game_type: gameType, score, stars_earned: stars, coins_earned: stars * 5, duration_seconds: 60, completed: true })
     await saveLevel(gameType, stars, score)
-    setReward({ stars, coins: stars * 5 })
+    setReward({ stars: actual.stars_earned, coins: actual.coins_earned, totalStars: stars })
   }
 
   if (reward) return (

@@ -8,6 +8,7 @@ from .routers.users import router as users_router
 from .routers.progress import router as progress_router
 from .routers.leaderboard import router as leaderboard_router
 from .routers.levels import router as levels_router
+from .routers.battle import router as battle_router
 from .models import User
 from sqlalchemy import select
 
@@ -28,6 +29,7 @@ app.include_router(progress_router)
 app.include_router(leaderboard_router)
 app.include_router(levels_router)
 app.include_router(games.router)
+app.include_router(battle_router)
 
 
 @app.on_event('startup')

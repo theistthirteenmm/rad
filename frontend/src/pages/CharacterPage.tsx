@@ -24,7 +24,9 @@ export default function CharacterPage() {
   const [selectedAvatar, setSelectedAvatar] = useState(
     isPhoto ? 0 : parseInt(avatarVal.replace('avatar', '') || '0')
   )
-  const [items, setItems] = useState<string[]>([])
+  const [items, setItems] = useState<string[]>(
+    () => (student?.character_items as string[] | null) ?? []
+  )
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -65,9 +67,9 @@ export default function CharacterPage() {
     if (items.includes(acc.id)) { alert('قبلاً خریدی!'); return }
     const newItems = [...items, acc.id]
     setItems(newItems)
-    const updated = { ...student, coins: student.coins - acc.cost }
+    const updated = { ...student, coins: student.coins - acc.cost, character_items: newItems }
     setUser(updated)
-    await updateUser(student.id, { coins: updated.coins })
+    await updateUser(student.id, { coins: updated.coins, character_items: newItems })
   }
 
   const changeAvatar = async (idx: number) => {

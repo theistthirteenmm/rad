@@ -48,6 +48,10 @@ async def complete_level(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """
+    فقط LevelProgress رو آپدیت می‌کنه — بدون دادن پاداش مستقیم.
+    پاداش واقعی از طریق /progress/{id}/session داده می‌شه که سقف رو رعایت می‌کنه.
+    """
     result = await db.execute(
         select(LevelProgress).where(
             LevelProgress.user_id == user.id,

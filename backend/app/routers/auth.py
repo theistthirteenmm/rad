@@ -60,6 +60,7 @@ def _user_out(u: User) -> UserOut:
         coins=u.coins,
         level=u.level,
         child_name=u.child_name,
+        character_items=u.character_items if isinstance(u.character_items, list) else [],
         createdAt=int(u.created_at.timestamp() * 1000) if u.created_at else 0,
     )
 

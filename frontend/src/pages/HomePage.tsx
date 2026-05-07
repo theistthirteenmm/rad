@@ -63,6 +63,10 @@ export default function HomePage() {
             style={{ background: 'var(--primary)', color: 'white', borderRadius: 12, padding: '8px 14px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
             📊 گزارش
           </button>
+          <button onClick={() => nav('/download')}
+            style={{ background: '#f0fff9', color: '#06D6A0', borderRadius: 12, padding: '8px 12px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+            📱
+          </button>
         </div>
       </motion.div>
 
@@ -95,28 +99,35 @@ export default function HomePage() {
       </motion.div>
 
       {/* Mode Toggle */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
         <motion.button whileTap={{ scale: 0.97 }} onClick={() => setMode('learn')}
-          style={{ padding: '16px 12px', borderRadius: 18, cursor: 'pointer', textAlign: 'center',
+          style={{ padding: '14px 8px', borderRadius: 18, cursor: 'pointer', textAlign: 'center',
             background: mode === 'learn' ? 'linear-gradient(135deg,#667eea,#764ba2)' : '#f7fafc',
             border: mode === 'learn' ? 'none' : '2px solid #e2e8f0',
             color: mode === 'learn' ? 'white' : 'var(--text-light)',
             boxShadow: mode === 'learn' ? '0 4px 15px rgba(102,126,234,0.4)' : 'none',
             transition: 'all 0.25s' }}>
-          <div style={{ fontSize: '1.8rem', marginBottom: 4 }}>📚</div>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>یادگیری</div>
-          <div style={{ fontSize: 11, marginTop: 2, opacity: 0.8 }}>مطالعه و کشف</div>
+          <div style={{ fontSize: '1.6rem', marginBottom: 4 }}>📚</div>
+          <div style={{ fontWeight: 700, fontSize: 13 }}>یادگیری</div>
         </motion.button>
         <motion.button whileTap={{ scale: 0.97 }} onClick={() => setMode('game')}
-          style={{ padding: '16px 12px', borderRadius: 18, cursor: 'pointer', textAlign: 'center',
+          style={{ padding: '14px 8px', borderRadius: 18, cursor: 'pointer', textAlign: 'center',
             background: mode === 'game' ? 'linear-gradient(135deg,#f093fb,#f5576c)' : '#f7fafc',
             border: mode === 'game' ? 'none' : '2px solid #e2e8f0',
             color: mode === 'game' ? 'white' : 'var(--text-light)',
             boxShadow: mode === 'game' ? '0 4px 15px rgba(245,87,108,0.4)' : 'none',
             transition: 'all 0.25s' }}>
-          <div style={{ fontSize: '1.8rem', marginBottom: 4 }}>🎮</div>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>بازی و مسابقه</div>
-          <div style={{ fontSize: 11, marginTop: 2, opacity: 0.8 }}>مراحل و امتیاز</div>
+          <div style={{ fontSize: '1.6rem', marginBottom: 4 }}>🎮</div>
+          <div style={{ fontWeight: 700, fontSize: 13 }}>بازی</div>
+        </motion.button>
+        <motion.button whileTap={{ scale: 0.97 }} onClick={() => nav('/battle')}
+          style={{ padding: '14px 8px', borderRadius: 18, cursor: 'pointer', textAlign: 'center',
+            background: 'linear-gradient(135deg,#FF6584,#FF9800)',
+            border: 'none', color: 'white',
+            boxShadow: '0 4px 15px rgba(255,101,132,0.4)',
+            transition: 'all 0.25s' }}>
+          <div style={{ fontSize: '1.6rem', marginBottom: 4 }}>⚔️</div>
+          <div style={{ fontWeight: 700, fontSize: 13 }}>رقابت</div>
         </motion.button>
       </div>
 

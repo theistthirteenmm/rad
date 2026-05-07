@@ -180,9 +180,9 @@ export default function QuranGamesPage() {
   useEffect(() => { api.getQuranVerses().then(r => setVerses(r.data)).catch(() => {}) }, [student])
 
   const handleComplete = async (gameType: string, score: number, stars: number) => {
-    await saveSession({ subject: SUBJECT, game_type: gameType, score, stars_earned: stars, coins_earned: stars * 5, duration_seconds: 60, completed: true })
+    const actual = await saveSession({ subject: SUBJECT, game_type: gameType, score, stars_earned: stars, coins_earned: stars * 5, duration_seconds: 60, completed: true })
     await saveLevel(gameType, stars, score)
-    setReward({ stars, coins: stars * 5 })
+    setReward({ stars: actual.stars_earned, coins: actual.coins_earned, totalStars: stars })
   }
 
   if (reward) return (

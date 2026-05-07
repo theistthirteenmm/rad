@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { speak } from '../lib/tts'
 
 interface Props {
   sentences: { text: string; level: number }[]
@@ -34,8 +35,11 @@ export default function FarsiReading({ sentences, onComplete }: Props) {
     recognition.onresult = (e: any) => {
       const text = e.results[0][0].transcript.trim()
       setHeard(text)
-      const correct = text.includes(sentence.text.split(' ')[0]) ||
-        similarity(text, sentence.text) > 0.6
+
+      // فقط بر اساس شباهت کل جمله قضاوت کن — نه کلمه اول
+      const sim = similarity(text, sentence.text)
+      const correct = sim >= 0.55
+
       if (correct) {
         setStatus('correct')
         setScore(s => s + 10)
@@ -70,11 +74,20 @@ export default function FarsiReading({ sentences, onComplete }: Props) {
     }
   }
 
-  function similarity(a: string, b: string) {
-    const wordsA = a.split(' ')
-    const wordsB = b.split(' ')
-    const matches = wordsA.filter(w => wordsB.some(wb => wb.includes(w) || w.includes(wb)))
-    return matches.length / Math.max(wordsB.length, 1)
+  function similarity(a: string, b: string): number {
+    if (!a || !b) return 0
+    const normalize = (s: string) =>
+      s.trim()
+        .replace(/[،؟!.]/g, '')
+        .replace(/\s+/g, ' ')
+    const wordsA = normalize(a).split(' ')
+    const wordsB = normalize(b).split(' ')
+
+    // چند کلمه از جمله اصلی در متن شنیده‌شده هست؟
+    const matched = wordsB.filter(wb =>
+      wordsA.some(wa => wa === wb || wa.includes(wb) || wb.includes(wa))
+    )
+    return matched.length / wordsB.length
   }
 
   return (

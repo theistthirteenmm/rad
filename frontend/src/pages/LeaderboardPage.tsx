@@ -39,8 +39,31 @@ interface LeagueData {
   }
 }
 
-function av(u: User) {
-  return AVATARS[parseInt(u.avatar?.replace('avatar', '') || '0')] || '🦁'
+/** نمایش آواتار — emoji یا عکس واقعی */
+function Avatar({ user, size = 36, border }: { user: User; size?: number; border?: string }) {
+  const val = user.avatar || 'avatar0'
+  const isPhoto = val.startsWith('data:')
+  const emoji = AVATARS[parseInt(val.replace('avatar', '') || '0')] || '🦁'
+
+  if (isPhoto) {
+    return (
+      <div style={{
+        width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
+        border: border || '2px solid #e2e8f0',
+      }}>
+        <img src={val} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      </div>
+    )
+  }
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: size > 44 ? '50%' : 10, flexShrink: 0,
+      background: '#f0eeff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      border: border || '2px solid #e2e8f0', fontSize: size * 0.48,
+    }}>
+      {emoji}
+    </div>
+  )
 }
 
 function Podium({ top3, myId, color }: { top3: RankedUser[]; myId: string; color: string }) {
@@ -62,12 +85,11 @@ function Podium({ top3, myId, color }: { top3: RankedUser[]; myId: string; color
             transition={{ delay: i * 0.15 }}
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 90 }}>
             {rank <= 3 && <span style={{ fontSize: '1.4rem', marginBottom: 4 }}>{MEDALS[rank - 1]}</span>}
-            <div style={{ fontSize: sizes[podiumIdx], background: isMe ? color + '25' : '#f7fafc',
-              borderRadius: '50%', width: 52, height: 52, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', border: isMe ? `2px solid ${color}` : '2px solid #e2e8f0',
-              marginBottom: 4 }}>
-              {av(u)}
-            </div>
+            <Avatar
+              user={u}
+              size={52}
+              border={isMe ? `2px solid ${color}` : '2px solid #e2e8f0'}
+            />
             <div style={{ fontSize: 11, fontWeight: 700, textAlign: 'center', color: isMe ? color : 'var(--text)',
               maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {u.name.split(' ')[0]}
@@ -154,9 +176,8 @@ function LeagueSection({ title, users, myId, color }: {
                 : <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-light)' }}>#{u.rank}</span>
               }
             </div>
-            <div style={{ fontSize: '1.6rem', width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background: '#f0eeff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {av(u)}
+            <div style={{ flexShrink: 0 }}>
+              <Avatar user={u} size={36} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

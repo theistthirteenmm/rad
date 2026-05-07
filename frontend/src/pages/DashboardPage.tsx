@@ -5,11 +5,42 @@ import { api } from '../hooks/useApi'
 import { useStore } from '../store/useStore'
 
 const SUBJECT_LABELS: Record<string, { label: string; emoji: string; color: string }> = {
-  farsi: { label: 'فارسی', emoji: '📖', color: '#FF6584' },
-  riazi: { label: 'ریاضی', emoji: '🔢', color: '#6C63FF' },
-  olum: { label: 'علوم', emoji: '🌱', color: '#06D6A0' },
-  ghoran: { label: 'قرآن', emoji: '📿', color: '#FFB703' },
-  negaresh: { label: 'نگارش', emoji: '✏️', color: '#4ECDC4' },
+  farsi:    { label: 'فارسی',  emoji: '📖', color: '#FF6584' },
+  math:     { label: 'ریاضی',  emoji: '🔢', color: '#6C63FF' },
+  science:  { label: 'علوم',   emoji: '🌱', color: '#06D6A0' },
+  quran:    { label: 'قرآن',   emoji: '📿', color: '#FFB703' },
+  writing:  { label: 'نگارش',  emoji: '✏️', color: '#4ECDC4' },
+  // کلیدهای قدیمی (backward compat)
+  riazi:    { label: 'ریاضی',  emoji: '🔢', color: '#6C63FF' },
+  olum:     { label: 'علوم',   emoji: '🌱', color: '#06D6A0' },
+  ghoran:   { label: 'قرآن',   emoji: '📿', color: '#FFB703' },
+  negaresh: { label: 'نگارش',  emoji: '✏️', color: '#4ECDC4' },
+}
+
+const GAME_TYPE_LABELS: Record<string, string> = {
+  // فارسی
+  alphabet:    '🔡 الفبا',
+  letterMatch: '🎯 حرف‌یاب',
+  wordbuilder: '🔤 کلمه‌ساز',
+  reading:     '🎤 صدای قهرمان',
+  story:       '📚 داستان‌خوانی',
+  // ریاضی
+  rocket:      '🚀 موشک حساب',
+  market:      '🛒 بازار ریاضی',
+  pattern:     '🔮 الگوها',
+  // علوم
+  animals:     '🐾 جانوران',
+  plants:      '🌱 گیاهان',
+  seasons:     '🌦️ فصل‌ها',
+  // قرآن
+  recite:      '📿 تلاوت',
+  match:       '🔗 تطبیق',
+  color:       '🎨 رنگ‌آمیزی',
+  // نگارش
+  trace:       '✏️ خط‌کشی',
+  dictation:   '📝 دیکته',
+  // آزمون الفبا
+  alphabetQuiz: '🎯 آزمون الفبا',
 }
 
 const AVATARS = ['🦁', '🐯', '🐻', '🦊', '🐼', '🐸', '🦋', '🐬']
@@ -128,7 +159,9 @@ export default function DashboardPage() {
                     borderBottom: i < 4 ? '1px solid #f0f0f0' : 'none' }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 600 }}>{subj.emoji} {subj.label}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-light)' }}>{s.game_type}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-light)' }}>
+                        {GAME_TYPE_LABELS[s.game_type] || s.game_type}
+                      </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: 13, color: '#FFB703' }}>{'⭐'.repeat(s.stars_earned)}</div>

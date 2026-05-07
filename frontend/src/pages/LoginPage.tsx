@@ -151,7 +151,27 @@ export default function LoginPage() {
           </div>
         </motion.div>
       </AnimatePresence>
-      <div style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: 'var(--text-light)' }}>
+      {/* دانلود APK */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+        style={{ marginTop: 16 }}>
+        <Link to="/download" style={{ textDecoration: 'none' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            padding: '12px 20px', borderRadius: 14,
+            background: 'linear-gradient(135deg, #06D6A0, #06b888)',
+            boxShadow: '0 4px 14px rgba(6,214,160,0.35)',
+          }}>
+            <span style={{ fontSize: '1.3rem' }}>📥</span>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>دانلود اپ اندروید</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', marginTop: 1 }}>نسخه APK — بدون نیاز به مارکت</div>
+            </div>
+            <span style={{ fontSize: 18, color: 'white', marginRight: 'auto' }}>←</span>
+          </div>
+        </Link>
+      </motion.div>
+
+      <div style={{ textAlign: 'center', marginTop: 14, fontSize: 12, color: 'var(--text-light)' }}>
         <Link to="/about" style={{ color: 'var(--text-light)', textDecoration: 'none' }}>
           درباره راد · رایان نوین
         </Link>

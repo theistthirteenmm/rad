@@ -29,14 +29,26 @@ export const api = {
 export function useSaveSession() {
   const { student, addToQueue, updateRewards } = useStore()
 
-  return async (sessionData: any) => {
-    updateRewards(sessionData.stars_earned, sessionData.coins_earned)
-    if (!student) return
+  return async (sessionData: any): Promise<{ stars_earned: number; coins_earned: number }> => {
+    if (!student) {
+      // آفلاین — از مقادیر ورودی استفاده کن (بدون سقف)
+      updateRewards(sessionData.stars_earned, sessionData.coins_earned)
+      addToQueue({ studentId: student, ...sessionData })
+      return { stars_earned: sessionData.stars_earned, coins_earned: sessionData.coins_earned }
+    }
 
     try {
-      await api.saveSession(parseInt(student.id), sessionData)
+      const res = await api.saveSession(parseInt(student.id), sessionData)
+      // backend مقدار واقعی (با سقف) رو برمی‌گردونه
+      const actual_stars = res.data.stars_earned
+      const actual_coins = res.data.coins_earned
+      updateRewards(actual_stars, actual_coins)
+      return { stars_earned: actual_stars, coins_earned: actual_coins }
     } catch {
+      // آفلاین fallback
+      updateRewards(sessionData.stars_earned, sessionData.coins_earned)
       addToQueue({ studentId: student.id, ...sessionData })
+      return { stars_earned: sessionData.stars_earned, coins_earned: sessionData.coins_earned }
     }
   }
 }

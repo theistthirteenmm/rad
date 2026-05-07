@@ -10,7 +10,7 @@ export default defineConfig({
       includeAssets: ['favicon.ico', '*.png', '*.svg'],
       manifest: {
         name: 'راد - بازی آموزشی',
-        short_name: 'راد',
+        short_name: 'Rad',
         description: 'بازی آموزشی تعاملی برای دانش‌آموزان کلاس اول',
         theme_color: '#6C63FF',
         background_color: '#6C63FF',
@@ -48,7 +48,8 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: process.env.API_TARGET || 'http://localhost:8000',
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false,
       }
     }
   }

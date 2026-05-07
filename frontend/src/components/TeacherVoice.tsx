@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import { speakFarsi, speak as ttsSpeak } from '../lib/tts'
 
 interface Props {
   text: string
@@ -10,13 +11,7 @@ interface Props {
 }
 
 export function speakFa(text: string) {
-  if (!('speechSynthesis' in window)) return
-  window.speechSynthesis.cancel()
-  const u = new SpeechSynthesisUtterance(text)
-  u.lang = 'fa-IR'
-  u.rate = 0.82
-  u.pitch = 1.1
-  window.speechSynthesis.speak(u)
+  ttsSpeak(text)
 }
 
 export default function TeacherVoice({ text, autoSpeak = true, style, fontSize = 13, className }: Props) {
@@ -24,16 +19,10 @@ export default function TeacherVoice({ text, autoSpeak = true, style, fontSize =
   const prevRef = useRef('')
 
   const speak = () => {
-    if (!('speechSynthesis' in window)) return
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'fa-IR'
-    u.rate = 0.82
-    u.pitch = 1.1
-    u.onstart = () => setSpeaking(true)
-    u.onend = () => setSpeaking(false)
-    u.onerror = () => setSpeaking(false)
-    window.speechSynthesis.speak(u)
+    speakFarsi(text, {
+      onStart: () => setSpeaking(true),
+      onEnd: () => setSpeaking(false),
+    })
   }
 
   useEffect(() => {

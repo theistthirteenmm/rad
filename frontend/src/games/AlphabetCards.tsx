@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { speak } from '../lib/tts'
 
 interface AlphabetItem {
   letter: string
@@ -13,268 +14,287 @@ interface Props {
   onComplete: (score: number, stars: number) => void
 }
 
-type Mode = 'learn' | 'quiz'
-
 function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5)
 }
 
-function LearnMode({ alphabet, onStartQuiz }: { alphabet: AlphabetItem[]; onStartQuiz: () => void }) {
-  const [idx, setIdx] = useState(0)
-  const [flipped, setFlipped] = useState(false)
-  const item = alphabet[idx]
-
-  const speak = (text: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-      const u = new SpeechSynthesisUtterance(text)
-      u.lang = 'fa-IR'
-      u.rate = 0.8
-      window.speechSynthesis.speak(u)
-    }
-  }
-
-  useEffect(() => {
-    setFlipped(false)
-  }, [idx])
-
-  return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ marginBottom: 8, color: 'var(--text-light)', fontSize: 13 }}>
-        حرف {idx + 1} از {alphabet.length}
-      </div>
-      <div className="progress-bar" style={{ marginBottom: 20 }}>
-        <div className="progress-fill" style={{ width: `${((idx + 1) / alphabet.length) * 100}%` }} />
-      </div>
-
-      <motion.div
-        key={idx}
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="card"
-        onClick={() => { setFlipped(f => !f); speak(flipped ? item.letter : item.word) }}
-        style={{
-          minHeight: 200, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', marginBottom: 20,
-          background: flipped
-            ? 'linear-gradient(135deg, #6C63FF22, #FF658422)'
-            : 'white',
-          border: '2px solid #6C63FF33'
-        }}
-      >
-        {!flipped ? (
-          <>
-            <div style={{ fontSize: '5rem', fontWeight: 900, color: 'var(--primary)', lineHeight: 1, marginBottom: 8 }}>
-              {item.letter}
-            </div>
-            <div style={{ fontSize: 18, color: 'var(--text-light)' }}>{item.name}</div>
-            <div style={{ fontSize: 12, color: '#aaa', marginTop: 8 }}>بزن تا کلمه ببینی 👇</div>
-          </>
-        ) : (
-          <>
-            <div style={{ fontSize: '4rem', marginBottom: 4 }}>{item.emoji}</div>
-            <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text)' }}>{item.word}</div>
-            <div style={{ fontSize: 14, color: 'var(--text-light)', marginTop: 4 }}>
-              با حرف <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{item.letter}</span> شروع می‌شه
-            </div>
-          </>
-        )}
-      </motion.div>
-
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 20 }}>
-        <button
-          className="btn"
-          onClick={() => setIdx(i => Math.max(0, i - 1))}
-          disabled={idx === 0}
-          style={{ opacity: idx === 0 ? 0.4 : 1, minWidth: 80 }}
-        >
-          → قبلی
-        </button>
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          className="btn btn-primary"
-          onClick={() => speak(flipped ? item.word : item.letter)}
-          style={{ background: 'linear-gradient(135deg, #6C63FF, #FF6584)' }}
-        >
-          🔊 بشنو
-        </motion.button>
-        {idx < alphabet.length - 1 ? (
-          <button className="btn" onClick={() => setIdx(i => i + 1)} style={{ minWidth: 80 }}>
-            بعدی ←
-          </button>
-        ) : (
-          <button className="btn btn-success" onClick={onStartQuiz} style={{ minWidth: 80 }}>
-            آزمون! 🎯
-          </button>
-        )}
-      </div>
-
-      {/* Mini alphabet strip */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginTop: 8 }}>
-        {alphabet.map((a, i) => (
-          <button
-            key={a.letter}
-            onClick={() => setIdx(i)}
-            style={{
-              width: 34, height: 34, borderRadius: 8, fontSize: 16, fontWeight: 700,
-              background: i === idx ? 'var(--primary)' : i < idx ? '#06D6A022' : '#f0eeff',
-              color: i === idx ? 'white' : i < idx ? '#06D6A0' : 'var(--primary)',
-              border: `1px solid ${i === idx ? 'var(--primary)' : '#e0d8ff'}`,
-              cursor: 'pointer'
-            }}
-          >
-            {a.letter}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
+/** شباهت ساده بین دو رشته */
+function similarity(a: string, b: string): number {
+  if (!a || !b) return 0
+  const wordsA = a.split(' ')
+  const wordsB = b.split(' ')
+  const matches = wordsA.filter(w => wordsB.some(wb => wb.includes(w) || w.includes(wb)))
+  return matches.length / Math.max(wordsB.length, 1)
 }
 
-function QuizMode({ alphabet, onComplete }: { alphabet: AlphabetItem[]; onComplete: (score: number, stars: number) => void }) {
-  const questions = shuffle(alphabet).slice(0, 10)
-  const [qIdx, setQIdx] = useState(0)
+type CardState = 'front' | 'revealed' | 'listening' | 'correct' | 'wrong'
+
+export default function AlphabetCards({ alphabet, onComplete }: Props) {
+  const items = useState(() => shuffle(alphabet))[0]
+  const [idx, setIdx] = useState(0)
+  const [cardState, setCardState] = useState<CardState>('front')
+  const [heard, setHeard] = useState('')
   const [score, setScore] = useState(0)
-  const [selected, setSelected] = useState<string | null>(null)
+  const [tries, setTries] = useState(0)
+  const recognitionRef = useRef<any>(null)
 
-  const q = questions[qIdx]
+  const item = items[idx]
+  const total = items.length
 
-  const choices = shuffle([
-    q.letter,
-    ...shuffle(alphabet.filter(a => a.letter !== q.letter)).slice(0, 3).map(a => a.letter)
-  ])
+  // وقتی کارت عوض میشه reset کن
+  useEffect(() => {
+    setCardState('front')
+    setHeard('')
+    setTries(0)
+  }, [idx])
 
-  const speak = (text: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-      const u = new SpeechSynthesisUtterance(text)
-      u.lang = 'fa-IR'
-      u.rate = 0.8
-      window.speechSynthesis.speak(u)
-    }
+  // وقتی کارت رو زد → نشون بده کلمه رو و صداش رو پخش کن
+  const handleReveal = () => {
+    if (cardState !== 'front') return
+    setCardState('revealed')
+    speak(item.word)
   }
 
-  const handleAnswer = (letter: string) => {
-    if (selected) return
-    setSelected(letter)
-    if (letter === q.letter) {
-      setScore(s => s + 10)
-      speak('آفرین')
-    } else {
-      speak(q.letter)
+  // شروع ضبط صدا
+  const startListening = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      // اگه میکروفن نبود، دکمه "بعدی" نشون بده
+      setCardState('correct')
+      return
     }
-    setTimeout(() => {
-      if (qIdx + 1 >= questions.length) {
-        const finalScore = score + (letter === q.letter ? 10 : 0)
-        const stars = finalScore >= 80 ? 3 : finalScore >= 50 ? 2 : 1
-        onComplete(finalScore, stars)
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'fa-IR'
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognitionRef.current = recognition
+
+    recognition.onstart = () => setCardState('listening')
+
+    recognition.onresult = (e: any) => {
+      const text = e.results[0][0].transcript.trim()
+      setHeard(text)
+      const ok =
+        text.includes(item.word) ||
+        item.word.includes(text) ||
+        similarity(text, item.word) > 0.5
+      if (ok) {
+        setCardState('correct')
+        setScore(s => s + 10)
+        speak('آفرین')
       } else {
-        setQIdx(i => i + 1)
-        setSelected(null)
+        setTries(t => t + 1)
+        setCardState('wrong')
+        speak(item.word)
       }
-    }, 1000)
+    }
+
+    recognition.onerror = () => {
+      setCardState('revealed')
+      setHeard('')
+    }
+
+    recognition.start()
   }
+
+  const stopListening = () => {
+    recognitionRef.current?.stop()
+    setCardState('revealed')
+  }
+
+  const next = () => {
+    if (idx + 1 >= total) {
+      const stars = score >= total * 8 ? 3 : score >= total * 5 ? 2 : 1
+      onComplete(score, stars)
+    } else {
+      setIdx(i => i + 1)
+    }
+  }
+
+  const progressPct = (idx / total) * 100
 
   return (
     <div style={{ textAlign: 'center' }}>
-      <div style={{ marginBottom: 8, color: 'var(--text-light)', fontSize: 13 }}>
-        سوال {qIdx + 1} از {questions.length}
+      {/* Progress */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12,
+        color: 'var(--text-light)', marginBottom: 6 }}>
+        <span>حرف {idx + 1} از {total}</span>
+        <span>⭐ {score}</span>
       </div>
-      <div className="progress-bar" style={{ marginBottom: 20 }}>
-        <div className="progress-fill" style={{ width: `${(qIdx / questions.length) * 100}%` }} />
+      <div className="progress-bar" style={{ marginBottom: 24 }}>
+        <div className="progress-fill" style={{ width: `${progressPct}%` }} />
       </div>
 
+      {/* کارت اصلی */}
       <AnimatePresence mode="wait">
-        <motion.div key={qIdx} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.8, opacity: 0 }} className="card" style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: '4rem', marginBottom: 8 }}>{q.emoji}</div>
-          <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>{q.word}</div>
-          <div style={{ fontSize: 14, color: 'var(--text-light)' }}>
-            کدام حرف اوله؟
-          </div>
-          <button
-            onClick={() => speak(q.word)}
-            style={{ marginTop: 8, background: 'none', fontSize: 20, cursor: 'pointer' }}
-          >
-            🔊
-          </button>
+        <motion.div
+          key={idx}
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.85, opacity: 0 }}
+          onClick={handleReveal}
+          className="card"
+          style={{
+            minHeight: 220,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            cursor: cardState === 'front' ? 'pointer' : 'default',
+            marginBottom: 20,
+            background:
+              cardState === 'correct' ? 'linear-gradient(135deg,#f0fff9,#e0fdf4)' :
+              cardState === 'wrong'   ? 'linear-gradient(135deg,#fff0f3,#ffe4e8)' :
+              cardState === 'front'   ? 'white' :
+              'linear-gradient(135deg,#f0eeff,#fff0f3)',
+            border:
+              cardState === 'correct' ? '2px solid #06D6A060' :
+              cardState === 'wrong'   ? '2px solid #FF658460' :
+              '2px solid #6C63FF22',
+            transition: 'background 0.3s, border 0.3s',
+          }}
+        >
+          {cardState === 'front' ? (
+            /* روی کارت — فقط حرف */
+            <>
+              <motion.div
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                style={{ fontSize: '6rem', fontWeight: 900, color: 'var(--primary)', lineHeight: 1 }}>
+                {item.letter}
+              </motion.div>
+              <div style={{ fontSize: 16, color: 'var(--text-light)', marginTop: 8 }}>{item.name}</div>
+              <div style={{ fontSize: 12, color: '#bbb', marginTop: 12 }}>
+                👆 بزن تا کلمه ببینی
+              </div>
+            </>
+          ) : (
+            /* پشت کارت — emoji + کلمه */
+            <>
+              <motion.div
+                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                transition={{ type: 'spring', bounce: 0.5 }}
+                style={{ fontSize: '5rem', marginBottom: 8 }}>
+                {item.emoji}
+              </motion.div>
+              <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--text)', marginBottom: 4 }}>
+                {item.word}
+              </div>
+              <div style={{ fontSize: 14, color: 'var(--text-light)' }}>
+                با حرف{' '}
+                <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{item.letter}</span>
+                {' '}شروع می‌شه
+              </div>
+
+              {/* نتیجه تلفظ */}
+              {cardState === 'correct' && (
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                  style={{ marginTop: 12, fontSize: 28 }}>🎉</motion.div>
+              )}
+              {cardState === 'wrong' && heard && (
+                <div style={{ marginTop: 10, fontSize: 12, color: '#FF6584',
+                  background: '#fff0f3', borderRadius: 8, padding: '6px 12px' }}>
+                  شنیدم: «{heard}» — دوباره تلاش کن
+                </div>
+              )}
+            </>
+          )}
         </motion.div>
       </AnimatePresence>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-        {choices.map(letter => {
-          const isCorrect = letter === q.letter
-          const isSelected = letter === selected
-          let bg = '#f0eeff'
-          let border = '#e0d8ff'
-          let color = 'var(--primary)'
-          if (isSelected) {
-            bg = isCorrect ? '#06D6A0' : '#FF6584'
-            border = 'transparent'
-            color = 'white'
-          } else if (selected && isCorrect) {
-            bg = '#06D6A022'
-            border = '#06D6A0'
-            color = '#06D6A0'
-          }
-          return (
+      {/* دکمه‌های عمل */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+
+        {/* حالت revealed — دکمه بخون */}
+        {cardState === 'revealed' && (
+          <>
             <motion.button
-              key={letter}
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => handleAnswer(letter)}
+              onClick={startListening}
               style={{
-                padding: '20px 16px', borderRadius: 14, fontSize: 28, fontWeight: 900,
-                background: bg, border: `2px solid ${border}`, cursor: 'pointer', color,
-                transition: 'all 0.2s'
-              }}
-            >
-              {letter}
+                padding: '14px 40px', borderRadius: 18,
+                background: 'linear-gradient(135deg,#FF6584,#FF8FA3)',
+                color: 'white', border: 'none', cursor: 'pointer',
+                fontSize: 18, fontWeight: 700, fontFamily: 'inherit',
+                boxShadow: '0 4px 16px rgba(255,101,132,0.4)',
+              }}>
+              🎤 بخون!
             </motion.button>
-          )
-        })}
+            <button
+              onClick={() => speak(item.word)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 13, color: 'var(--text-light)' }}>
+              🔊 دوباره بشنو
+            </button>
+          </>
+        )}
+
+        {/* حالت listening */}
+        {cardState === 'listening' && (
+          <motion.button
+            animate={{ scale: [1, 1.06, 1] }}
+            transition={{ repeat: Infinity, duration: 0.7 }}
+            onClick={stopListening}
+            style={{
+              padding: '14px 40px', borderRadius: 18,
+              background: '#FF6584', color: 'white',
+              border: 'none', cursor: 'pointer',
+              fontSize: 18, fontWeight: 700, fontFamily: 'inherit',
+            }}>
+            🔴 در حال گوش دادن...
+          </motion.button>
+        )}
+
+        {/* حالت wrong — دوباره تلاش */}
+        {cardState === 'wrong' && (
+          <div style={{ display: 'flex', gap: 10 }}>
+            <motion.button
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={startListening}
+              style={{
+                padding: '12px 28px', borderRadius: 16,
+                background: 'linear-gradient(135deg,#FF6584,#FF8FA3)',
+                color: 'white', border: 'none', cursor: 'pointer',
+                fontSize: 16, fontWeight: 700, fontFamily: 'inherit',
+              }}>
+              🎤 دوباره
+            </motion.button>
+            {tries >= 2 && (
+              <motion.button
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={next}
+                style={{
+                  padding: '12px 28px', borderRadius: 16,
+                  background: '#f0eeff', color: 'var(--primary)',
+                  border: 'none', cursor: 'pointer',
+                  fontSize: 16, fontWeight: 700, fontFamily: 'inherit',
+                }}>
+                رد کن ←
+              </motion.button>
+            )}
+          </div>
+        )}
+
+        {/* حالت correct — بعدی */}
+        {cardState === 'correct' && (
+          <motion.button
+            initial={{ scale: 0 }} animate={{ scale: 1 }}
+            transition={{ type: 'spring', bounce: 0.5 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={next}
+            style={{
+              padding: '14px 48px', borderRadius: 18,
+              background: 'linear-gradient(135deg,#06D6A0,#05b888)',
+              color: 'white', border: 'none', cursor: 'pointer',
+              fontSize: 18, fontWeight: 700, fontFamily: 'inherit',
+              boxShadow: '0 4px 16px rgba(6,214,160,0.4)',
+            }}>
+            {idx + 1 >= total ? '🏆 پایان!' : 'بعدی ←'}
+          </motion.button>
+        )}
       </div>
-
-      <div style={{ fontSize: 14, color: 'var(--text-light)' }}>⭐ {score}</div>
-    </div>
-  )
-}
-
-export default function AlphabetCards({ alphabet, onComplete }: Props) {
-  const [mode, setMode] = useState<Mode>('learn')
-
-  return (
-    <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, justifyContent: 'center' }}>
-        <button
-          onClick={() => setMode('learn')}
-          style={{
-            padding: '8px 18px', borderRadius: 20, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-            background: mode === 'learn' ? 'var(--primary)' : '#f0eeff',
-            color: mode === 'learn' ? 'white' : 'var(--primary)',
-            border: 'none'
-          }}
-        >
-          📖 یاد بگیر
-        </button>
-        <button
-          onClick={() => setMode('quiz')}
-          style={{
-            padding: '8px 18px', borderRadius: 20, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-            background: mode === 'quiz' ? '#FF6584' : '#fff0f3',
-            color: mode === 'quiz' ? 'white' : '#FF6584',
-            border: 'none'
-          }}
-        >
-          🎯 آزمون
-        </button>
-      </div>
-
-      {mode === 'learn' ? (
-        <LearnMode alphabet={alphabet} onStartQuiz={() => setMode('quiz')} />
-      ) : (
-        <QuizMode alphabet={alphabet} onComplete={onComplete} />
-      )}
     </div>
   )
 }

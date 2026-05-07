@@ -161,6 +161,7 @@ export default function RegisterPage() {
 
   const [studentsInClass, setStudentsInClass] = useState<{ value: string; label: string }[]>([])
   const [selectedStudentName, setSelectedStudentName] = useState('')
+  const [studentsLoading, setStudentsLoading] = useState(false)
 
   // Load schools on mount
   useEffect(() => {
@@ -194,12 +195,17 @@ export default function RegisterPage() {
   // Load students in class for parent child picker
   useEffect(() => {
     if (role === 'parent' && schoolId && gradeId && classId) {
+      setStudentsLoading(true)
+      setStudentsInClass([])
+      setSelectedStudentName('')
       getStudentsInClass(schoolId, gradeId, classId).then(students => {
         setStudentsInClass(students.map(s => ({ value: s.name, label: s.name })))
+        setStudentsLoading(false)
       })
     } else {
       setStudentsInClass([])
       setSelectedStudentName('')
+      setStudentsLoading(false)
     }
   }, [schoolId, gradeId, classId, role])
 
@@ -245,6 +251,7 @@ export default function RegisterPage() {
       teacher_name: teacherName.trim(),
       avatar: `avatar${avatar}`,
       stars: 0, coins: 0, level: 1,
+      character_items: [],
       child_name: role === 'parent' ? (selectedStudentName || childName.trim()) : undefined,
       school_name: role === 'admin' ? adminSchoolName.trim() : undefined,
     })
@@ -400,13 +407,43 @@ export default function RegisterPage() {
               )}
 
               {role === 'parent' && classId && (
-                studentsInClass.length > 0 ? (
+                studentsLoading ? (
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 13, color: 'var(--text-light)', display: 'block', marginBottom: 6 }}>نام فرزند</label>
+                    <div style={{ padding: '12px 16px', borderRadius: 12, background: '#f0eeff',
+                      fontSize: 14, color: '#6C63FF', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
+                      در حال بارگذاری لیست دانش‌آموزان...
+                    </div>
+                  </div>
+                ) : studentsInClass.length > 0 ? (
                   <SelectField label="نام فرزند" value={selectedStudentName}
                     onChange={v => { setSelectedStudentName(v); setChildName('') }}
-                    options={studentsInClass} placeholder="-- فرزندتان را انتخاب کنید --" color={active.color} />
+                    options={studentsInClass}
+                    placeholder="-- فرزندتان را انتخاب کنید --"
+                    color={active.color}
+                    searchable={true}
+                    hint={`${studentsInClass.length} دانش‌آموز در این کلاس`} />
                 ) : (
-                  <TextField label="نام فرزند" value={childName} onChange={setChildName}
-                    placeholder="نام کامل فرزندتان" color={active.color} />
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 13, color: 'var(--text-light)', display: 'block', marginBottom: 6 }}>نام فرزند</label>
+                    <div style={{ background: '#fff8e1', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: '#888', marginBottom: 8 }}>
+                      ⚠️ هنوز هیچ دانش‌آموزی در این کلاس ثبت‌نام نکرده.<br/>
+                      <span style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+                        نام فرزندتان را دستی وارد کنید:
+                      </span>
+                    </div>
+                    <input
+                      value={childName}
+                      onChange={e => setChildName(e.target.value)}
+                      placeholder="نام کامل فرزندتان"
+                      style={{ width: '100%', padding: '12px 16px', borderRadius: 12,
+                        border: `2px solid ${childName ? active.color + '80' : '#e2e8f0'}`,
+                        fontSize: 15, outline: 'none', direction: 'rtl' }}
+                      onFocus={e => e.target.style.borderColor = active.color}
+                      onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                    />
+                  </div>
                 )
               )}
               {role === 'parent' && !classId && (

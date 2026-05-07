@@ -1,8 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'ir.radin.educational',
-  appName: 'رادین',
+  appId: 'ir.rad.educational',
+  appName: 'راد',
   webDir: 'dist',
   server: {
     androidScheme: 'https'

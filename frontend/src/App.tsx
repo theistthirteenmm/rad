@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useStore } from './store/useStore'
+import InstallPrompt from './components/InstallPrompt'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import HomePage from './pages/HomePage'
@@ -17,6 +18,8 @@ import AboutPage from './pages/AboutPage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import LearningHubPage from './pages/LearningHubPage'
 import SuperAdminPage from './pages/SuperAdminPage'
+import DownloadPage from './pages/DownloadPage'
+import BattlePage from './pages/BattlePage'
 
 function Guard({ children, role }: { children: JSX.Element; role?: string }) {
   const user = useStore(s => s.user)
@@ -33,6 +36,7 @@ function Guard({ children, role }: { children: JSX.Element; role?: string }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <InstallPrompt />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -51,6 +55,8 @@ export default function App() {
         <Route path="/dashboard" element={<Guard role="student"><DashboardPage /></Guard>} />
         <Route path="/character" element={<Guard role="student"><CharacterPage /></Guard>} />
         <Route path="/learn" element={<Guard role="student"><LearningHubPage /></Guard>} />
+        <Route path="/download" element={<DownloadPage />} />
+        <Route path="/battle" element={<Guard role="student"><BattlePage /></Guard>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

@@ -63,46 +63,159 @@ function AnimalGame({ animals, onComplete }: any) {
 }
 
 function PlantGame({ stages, onComplete }: any) {
-  const [shuffled, setShuffled] = useState([...stages].sort(() => Math.random() - 0.5))
+  const [shuffled, setShuffled] = useState(() => [...stages].sort(() => Math.random() - 0.5))
   const [order, setOrder] = useState<any[]>([])
-  const [checked, setChecked] = useState(false)
+  const [result, setResult] = useState<'idle' | 'correct' | 'wrong'>('idle')
+  const [tries, setTries] = useState(0)
 
   const move = (stage: any) => {
+    if (result !== 'idle') return
     setOrder(o => [...o, stage])
     setShuffled(s => s.filter(x => x.stage !== stage.stage))
   }
 
+  const removeFromOrder = (idx: number) => {
+    if (result !== 'idle') return
+    const removed = order[idx]
+    setOrder(o => o.filter((_, i) => i !== idx))
+    setShuffled(s => [...s, removed].sort((a, b) => a.stage - b.stage))
+  }
+
   const check = () => {
     const ok = order.every((s, i) => s.stage === i + 1)
-    setChecked(true)
-    if (ok) onComplete(30, 3)
-    else setTimeout(() => { setShuffled([...stages].sort(() => Math.random() - 0.5)); setOrder([]); setChecked(false) }, 1500)
+    if (ok) {
+      setResult('correct')
+      const stars = tries === 0 ? 3 : tries === 1 ? 2 : 1
+      setTimeout(() => onComplete(30, stars), 1200)
+    } else {
+      setResult('wrong')
+      setTimeout(() => {
+        setShuffled([...stages].sort(() => Math.random() - 0.5))
+        setOrder([])
+        setResult('idle')
+        setTries(t => t + 1)
+      }, 1500)
+    }
+  }
+
+  const reset = () => {
+    setShuffled([...stages].sort(() => Math.random() - 0.5))
+    setOrder([])
+    setResult('idle')
   }
 
   return (
     <div>
-      <p style={{ color: 'var(--text-light)', marginBottom: 12, fontSize: 13 }}>مراحل رشد گیاه رو مرتب کن:</p>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        {shuffled.map(s => (
-          <button key={s.stage} onClick={() => move(s)}
-            style={{ padding: '10px 14px', borderRadius: 12, background: '#f0fff9',
-              border: '2px solid #06D6A0', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-            {s.name}
-          </button>
+      <p style={{ color: 'var(--text-light)', marginBottom: 8, fontSize: 13 }}>
+        مراحل رشد گیاه رو به ترتیب مرتب کن:
+      </p>
+
+      {/* نمایش ترتیب درست به عنوان راهنما */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 14,
+        background: '#f0fff9', borderRadius: 12, padding: '8px 12px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, color: '#06D6A0', fontWeight: 700, marginLeft: 4 }}>ترتیب:</span>
+        {stages.map((s: any, i: number) => (
+          <span key={s.stage} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-light)' }}>
+              {i + 1}. {s.name}
+            </span>
+            {i < stages.length - 1 && <span style={{ color: '#ccc', fontSize: 10 }}>←</span>}
+          </span>
         ))}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, flexWrap: 'wrap', minHeight: 44 }}>
-        {order.map((s, i) => (
-          <motion.div key={s.stage} initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ padding: '8px 12px', borderRadius: 10, background: 'var(--primary)', color: 'white', fontSize: 13, fontWeight: 600 }}>{s.name}</div>
-            {i < order.length - 1 && <span>←</span>}
-          </motion.div>
-        ))}
+
+      {/* کارت‌های قابل انتخاب */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-light)', marginBottom: 6 }}>
+          👆 روی مراحل بزن تا مرتب کنی:
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {shuffled.map((s: any) => (
+            <motion.button
+              key={s.stage}
+              whileTap={{ scale: 0.93 }}
+              onClick={() => move(s)}
+              style={{
+                padding: '10px 16px', borderRadius: 12,
+                background: '#f0fff9', border: '2px solid #06D6A0',
+                cursor: 'pointer', fontSize: 14, fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+              <span style={{ fontSize: 18 }}>
+                {s.stage === 1 ? '🌱' : s.stage === 2 ? '🌿' : s.stage === 3 ? '🪴' : s.stage === 4 ? '🌳' : '🌸'}
+              </span>
+              {s.name}
+            </motion.button>
+          ))}
+        </div>
       </div>
-      {order.length === stages.length && !checked && (
-        <button className="btn btn-success" onClick={check}>✓ بررسی</button>
+
+      {/* ترتیب انتخاب‌شده */}
+      <div style={{ minHeight: 56, background: '#f7fafc', borderRadius: 14,
+        padding: '10px 12px', marginBottom: 14, border: '2px dashed #e2e8f0' }}>
+        {order.length === 0 ? (
+          <div style={{ color: '#ccc', fontSize: 13, textAlign: 'center', paddingTop: 6 }}>
+            اینجا مرتب می‌شه...
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            {order.map((s: any, i: number) => (
+              <motion.div key={`${s.stage}-${i}`}
+                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <button
+                  onClick={() => removeFromOrder(i)}
+                  style={{
+                    padding: '7px 12px', borderRadius: 10,
+                    background: result === 'correct' ? '#06D6A0' :
+                                result === 'wrong' ? '#FF6584' : 'var(--primary)',
+                    color: 'white', border: 'none', cursor: 'pointer',
+                    fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                    transition: 'background 0.3s',
+                  }}>
+                  {i + 1}. {s.name}
+                </button>
+                {i < order.length - 1 && <span style={{ color: '#aaa' }}>←</span>}
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* نتیجه */}
+      {result === 'correct' && (
+        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+          style={{ textAlign: 'center', fontSize: 28, marginBottom: 12, color: '#06D6A0', fontWeight: 700 }}>
+          🎉 آفرین! ترتیب درسته!
+        </motion.div>
       )}
-      {checked && <div style={{ textAlign: 'center', fontSize: '2rem', marginTop: 12 }}>🎉 عالی!</div>}
+      {result === 'wrong' && (
+        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+          style={{ textAlign: 'center', fontSize: 18, marginBottom: 12, color: '#FF6584', fontWeight: 700 }}>
+          😅 ترتیب اشتباهه، دوباره تلاش کن!
+        </motion.div>
+      )}
+
+      {/* دکمه‌ها */}
+      {result === 'idle' && (
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn" onClick={reset}
+            style={{ background: '#ffe0e0', color: '#FF6584', flex: 1 }}>
+            🗑️ پاک
+          </button>
+          <button className="btn btn-success" onClick={check}
+            disabled={order.length !== stages.length}
+            style={{ flex: 2, opacity: order.length !== stages.length ? 0.5 : 1 }}>
+            ✓ بررسی
+          </button>
+        </div>
+      )}
+
+      {tries > 0 && result === 'idle' && (
+        <div style={{ textAlign: 'center', marginTop: 8, fontSize: 12, color: '#aaa' }}>
+          تلاش {tries + 1}
+        </div>
+      )}
     </div>
   )
 }
@@ -160,9 +273,9 @@ export default function ScienceGamesPage() {
   }, [student])
 
   const handleComplete = async (gameType: string, score: number, stars: number) => {
-    await saveSession({ subject: SUBJECT, game_type: gameType, score, stars_earned: stars, coins_earned: stars * 5, duration_seconds: 60, completed: true })
+    const actual = await saveSession({ subject: SUBJECT, game_type: gameType, score, stars_earned: stars, coins_earned: stars * 5, duration_seconds: 60, completed: true })
     await saveLevel(gameType, stars, score)
-    setReward({ stars, coins: stars * 5 })
+    setReward({ stars: actual.stars_earned, coins: actual.coins_earned, totalStars: stars })
   }
 
   if (reward) return (

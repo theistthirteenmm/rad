@@ -20,6 +20,7 @@ export interface User {
   coins: number
   level: number
   child_name?: string
+  character_items: string[]
   createdAt: number
 }
 
@@ -124,8 +125,9 @@ export async function getStudentsInClass(
   classId: string,
 ): Promise<User[]> {
   try {
-    const { data } = await api.get('/users/', {
-      params: { role: 'student', school_id: schoolId, grade_id: gradeId, class_id: classId },
+    // public endpoint — no auth needed (used during parent registration)
+    const { data } = await api.get('/users/public/students', {
+      params: { school_id: schoolId, grade_id: gradeId, class_id: classId },
     })
     return data as User[]
   } catch { return [] }

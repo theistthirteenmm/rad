@@ -13,6 +13,7 @@ import AlphabetCards from '../games/AlphabetCards'
 import StoryReader from '../games/StoryReader'
 import RewardModal from '../components/RewardModal'
 import TeacherVoice from '../components/TeacherVoice'
+import { speak } from '../lib/tts'
 
 const COLOR = '#FF6584'
 const SUBJECT = 'farsi'
@@ -60,15 +61,6 @@ function LetterMatchGame({ alphabet, onComplete, timerSeconds }: {
   const [choices, setChoices] = useState<string[]>([])
   const [done, setDone] = useState(false)
   const [timeouts, setTimeouts] = useState(0)
-
-  const speak = (t: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-      const u = new SpeechSynthesisUtterance(t)
-      u.lang = 'fa-IR'; u.rate = 0.8
-      window.speechSynthesis.speak(u)
-    }
-  }
 
   const advance = () => {
     if (idx + 1 >= items.length) { setDone(true); timer.stop() }
@@ -180,7 +172,7 @@ export default function FarsiGamesPage() {
   const [words, setWords] = useState<any[]>([])
   const [sentences, setSentences] = useState<any[]>([])
   const [alphabet, setAlphabet] = useState<any[]>([])
-  const [reward, setReward] = useState<{ stars: number; coins: number } | null>(null)
+  const [reward, setReward] = useState<{ stars: number; coins: number; totalStars?: number } | null>(null)
 
   useEffect(() => {
     const lv = student?.level || 1
@@ -191,9 +183,9 @@ export default function FarsiGamesPage() {
 
   const handleComplete = async (gameType: string, score: number, stars: number) => {
     const coins = stars * 5
-    await saveSession({ subject: SUBJECT, game_type: gameType, score, stars_earned: stars, coins_earned: coins, duration_seconds: 60, completed: true })
+    const actual = await saveSession({ subject: SUBJECT, game_type: gameType, score, stars_earned: stars, coins_earned: coins, duration_seconds: 60, completed: true })
     await saveLevel(gameType, stars, score)
-    setReward({ stars, coins })
+    setReward({ stars: actual.stars_earned, coins: actual.coins_earned, totalStars: stars })
   }
 
   if (reward) return (

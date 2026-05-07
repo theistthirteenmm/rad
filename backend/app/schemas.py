@@ -35,6 +35,7 @@ class UpdateUserRequest(BaseModel):
     level: Optional[int] = None
     avatar: Optional[str] = None
     teacher_name: Optional[str] = None
+    character_items: Optional[List[str]] = None
 
 
 class UserOut(BaseModel):
@@ -55,6 +56,7 @@ class UserOut(BaseModel):
     coins: int = 0
     level: int = 1
     child_name: Optional[str] = None
+    character_items: List[str] = []
     createdAt: int = 0
 
 

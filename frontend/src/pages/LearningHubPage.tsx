@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../hooks/useApi'
 import { useStore } from '../store/useStore'
+import { speak } from '../lib/tts'
 
 const SUBJECTS = [
   { id: 'farsi', label: 'فارسی', emoji: '📖', color: '#FF6584' },
@@ -33,12 +34,8 @@ const FALLBACK_ALPHABET = [
   {letter:'ی',name:'یِ',word:'یخ',emoji:'🧊'},
 ]
 
-function speak(text: string, lang = 'fa-IR') {
-  if (!('speechSynthesis' in window)) return
-  window.speechSynthesis.cancel()
-  const u = new SpeechSynthesisUtterance(text)
-  u.lang = lang; u.rate = 0.8
-  window.speechSynthesis.speak(u)
+function speakText(text: string) {
+  speak(text)
 }
 
 function FarsiLearn({ alphabet }: { alphabet: any[] }) {
@@ -53,7 +50,7 @@ function FarsiLearn({ alphabet }: { alphabet: any[] }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
         {letters.map((item, i) => (
           <motion.div key={i} whileTap={{ scale: 0.92 }}
-            onClick={() => { setFlipped(flipped === i ? null : i); speak(item.name) }}
+            onClick={() => { setFlipped(flipped === i ? null : i); speakText(item.name) }}
             style={{ borderRadius: 14, padding: '10px 6px', textAlign: 'center', cursor: 'pointer',
               background: flipped === i ? '#FF658420' : '#f7fafc',
               border: `2px solid ${flipped === i ? '#FF6584' : '#e2e8f0'}`,
@@ -253,7 +250,7 @@ function QuranLearn({ verses }: { verses: any[] }) {
           <div style={{ fontWeight: 700, color: '#FFB703', marginBottom: 8, fontSize: 14 }}>سوره {surah}</div>
           {svs.map((v: any, i: number) => (
             <motion.div key={i} whileTap={{ scale: 0.98 }}
-              onClick={() => { setExpanded(expanded === i ? null : i); speak(v.arabic, 'ar-SA') }}
+              onClick={() => { setExpanded(expanded === i ? null : i); speakText(v.arabic) }}
               className="card" style={{ marginBottom: 8, cursor: 'pointer',
                 background: expanded === i ? 'linear-gradient(135deg,#fffbf0,#fff5d6)' : 'white',
                 border: `2px solid ${expanded === i ? '#FFB703' : '#e2e8f0'}` }}>

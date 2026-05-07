@@ -5,9 +5,33 @@ from sqlalchemy.orm import selectinload
 from ..database import get_db
 from ..models import User, GameSession, LevelProgress
 from ..schemas import UserOut, UpdateUserRequest
+from ..cache import cache_del_pattern
 from .auth import get_current_user, _load_user, _user_out
 
 router = APIRouter(prefix='/api/users', tags=['users'])
+
+
+@router.get('/public/students', response_model=list[UserOut])
+async def list_students_public(
+    school_id: str,
+    grade_id: str,
+    class_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Public endpoint — used during parent registration to pick their child."""
+    q = (
+        select(User)
+        .options(selectinload(User.school), selectinload(User.grade), selectinload(User.classroom))
+        .where(
+            User.role == 'student',
+            User.school_id == int(school_id),
+            User.grade_id == int(grade_id),
+            User.class_id == int(class_id),
+        )
+        .order_by(User.name)
+    )
+    result = await db.execute(q)
+    return [_user_out(u) for u in result.scalars().all()]
 
 
 @router.get('/', response_model=list[UserOut])
@@ -82,8 +106,14 @@ async def update_user(
         user.level = data.level
     if data.avatar is not None:
         user.avatar = data.avatar
+        # avatar تغییر کرد → cache لیدربورد این مدرسه رو پاک کن
+        if user.school_id:
+            await cache_del_pattern(f'lb:{user.school_id}:*')
+            await cache_del_pattern(f'leagues:{user.school_id}:*')
     if data.teacher_name is not None:
         user.teacher_name = data.teacher_name
+    if data.character_items is not None:
+        user.character_items = data.character_items
     await db.commit()
     full = await _load_user(db, user_id)
     return _user_out(full)

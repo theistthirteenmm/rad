@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint, Boolean, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..database import Base
@@ -48,6 +48,7 @@ class User(Base):
     coins = Column(Integer, default=0)
     level = Column(Integer, default=1)
     child_name = Column(String, nullable=True)
+    character_items = Column(JSON, default=list)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     school = relationship('School', foreign_keys=[school_id])
