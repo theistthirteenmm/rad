@@ -37,6 +37,12 @@ export default function AboutPage() {
         </p>
       </motion.div>
 
+      {/* Class Photo */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
+        style={{ marginBottom: 20, borderRadius: 20, overflow: 'hidden', boxShadow: '0 8px 32px rgba(108,99,255,0.15)' }}>
+        <img src="/class-photo.jpg" alt="کلاس درس رادین" style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
+      </motion.div>
+
       {/* Story */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="card" style={{ marginBottom: 20, background: 'linear-gradient(135deg, #6C63FF12, #FF658412)', border: '1px solid #6C63FF20' }}>
