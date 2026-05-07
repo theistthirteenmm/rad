@@ -151,9 +151,14 @@ export default function LoginPage() {
           </div>
         </motion.div>
       </AnimatePresence>
-<div style={{ textAlign: 'center', marginTop: 14, fontSize: 12, color: 'var(--text-light)' }}>
+<div style={{ textAlign: 'center', marginTop: 14, fontSize: 12, color: 'var(--text-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
         <Link to="/about" style={{ color: 'var(--text-light)', textDecoration: 'none' }}>
           درباره راد · رایان نوین
+        </Link>
+        <Link to="/download" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5,
+          background: 'linear-gradient(135deg, #6C63FF22, #a855f722)', borderRadius: 20, padding: '5px 12px',
+          color: '#6C63FF', fontWeight: 700, fontSize: 12, border: '1.5px solid #6C63FF33' }}>
+          📱 دانلود APK
         </Link>
       </div>
     </div>
