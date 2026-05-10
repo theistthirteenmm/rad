@@ -16,7 +16,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/auth/login', auto_error=Fals
 
 ROLE_LABELS = {
     'student': 'دانش‌آموز', 'parent': 'اولیا',
-    'teacher': 'معلم', 'admin': 'مدیر'
+    'teacher': 'معلم', 'admin': 'مدیر', 'accountant': 'حساب‌دار'
 }
 
 

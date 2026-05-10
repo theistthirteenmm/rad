@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint, Boolean, JSON
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint, Boolean, JSON, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..database import Base
@@ -110,3 +110,35 @@ class SubjectProgress(Base):
     highest_score = Column(Integer, default=0)
     last_played = Column(DateTime, nullable=True)
     user = relationship('User', back_populates='subject_progress')
+
+
+class Invoice(Base):
+    __tablename__ = 'invoices'
+    id = Column(Integer, primary_key=True)
+    owner_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    invoice_kind = Column(String, nullable=False)          # خرید / فروش
+    invoice_type = Column(String, default='')              # نوع صورت‌حساب (اول/دوم/سوم)
+    template = Column(String, default='')                  # الگو صورت‌حساب
+    subject = Column(String, default='')                   # اصلی/اصلاحی/ابطالی
+    taxpayer_role = Column(String, default='')             # نقش مودی
+    tax_number = Column(String, default='', index=True)    # شماره مالیاتی
+    total = Column(Float, default=0)                       # مجموع صورت‌حساب
+    vat = Column(Float, default=0)                         # مالیات بر ارزش افزوده
+    status = Column(String, default='')                    # وضعیت
+    issue_date = Column(String, default='')                # تاریخ صدور
+    portfolio_date = Column(String, default='')            # تاریخ درج در کارپوشه
+    counterparty_id = Column(String, default='')           # شناسه هویتی
+    counterparty_tax_number = Column(String, default='')   # شماره اقتصادی
+    branch = Column(String, default='')                    # شعبه
+    counterparty_name = Column(String, default='')         # نام طرف حساب
+    counterparty_trade_name = Column(String, default='')   # نام تجاری
+    counterparty_type = Column(String, default='')         # نوع شخص
+    settlement_method = Column(String, default='')         # روش تسویه
+    year_period = Column(String, default='')               # سال و دوره
+    total_without_tax = Column(Float, default=0)           # مجموع بدون مالیات
+    reference_invoice = Column(String, default='')         # صورت‌حساب مرجع
+    response_datetime = Column(String, default='')         # تاریخ واکنش
+    settlement_balance = Column(Float, default=0)          # مانده تسویه
+    extra_data = Column(JSON, default=dict)                # فیلدهای اضافی
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)

@@ -10,6 +10,7 @@ from .routers.leaderboard import router as leaderboard_router
 from .routers.levels import router as levels_router
 from .routers.battle import router as battle_router
 from .routers.friends import router as friends_router
+from .routers.accounting import router as accounting_router
 from .models import User
 from sqlalchemy import select
 
@@ -32,6 +33,7 @@ app.include_router(levels_router)
 app.include_router(games.router)
 app.include_router(battle_router)
 app.include_router(friends_router)
+app.include_router(accounting_router)
 
 
 @app.on_event('startup')

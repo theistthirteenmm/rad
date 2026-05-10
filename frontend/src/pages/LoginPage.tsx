@@ -5,10 +5,11 @@ import { login, type Role } from '../lib/auth'
 import { useStore } from '../store/useStore'
 
 const ROLES: { id: Role; label: string; emoji: string; color: string; desc: string }[] = [
-  { id: 'student', label: 'دانش‌آموز', emoji: '🎒', color: '#6C63FF', desc: 'بازی و یادگیری' },
-  { id: 'parent',  label: 'اولیا',     emoji: '👪', color: '#FF6584', desc: 'پیشرفت فرزندم' },
-  { id: 'teacher', label: 'معلم',      emoji: '👩‍🏫', color: '#06D6A0', desc: 'مدیریت کلاس' },
-  { id: 'admin',   label: 'مدیر',      emoji: '🏫', color: '#FF9800', desc: 'مدیریت مدرسه' },
+  { id: 'student',    label: 'دانش‌آموز', emoji: '🎒', color: '#6C63FF', desc: 'بازی و یادگیری' },
+  { id: 'parent',     label: 'اولیا',     emoji: '👪', color: '#FF6584', desc: 'پیشرفت فرزندم' },
+  { id: 'teacher',    label: 'معلم',      emoji: '👩‍🏫', color: '#06D6A0', desc: 'مدیریت کلاس' },
+  { id: 'admin',      label: 'مدیر',      emoji: '🏫', color: '#FF9800', desc: 'مدیریت مدرسه' },
+  { id: 'accountant', label: 'حساب‌دار',  emoji: '📊', color: '#7c3aed', desc: 'صورت‌حساب‌های الکترونیکی' },
 ]
 
 export default function LoginPage() {
@@ -30,7 +31,7 @@ export default function LoginPage() {
     setLoading(false)
     if (!result.ok) { setError(result.error); return }
     setUser(result.user)
-    const routes: Record<Role, string> = { teacher: '/teacher', parent: '/parent', admin: '/admin', student: '/' }
+    const routes: Record<Role, string> = { teacher: '/teacher', parent: '/parent', admin: '/admin', student: '/', accountant: '/accounting' }
     const dest = role === 'admin' && result.user?.username === 'hamed' ? '/superadmin' : routes[role]
     nav(dest, { replace: true })
   }

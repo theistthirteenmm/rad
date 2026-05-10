@@ -20,6 +20,7 @@ import LearningHubPage from './pages/LearningHubPage'
 import SuperAdminPage from './pages/SuperAdminPage'
 import DownloadPage from './pages/DownloadPage'
 import BattlePage from './pages/BattlePage'
+import AccountingPage from './pages/AccountingPage'
 
 function Guard({ children, role }: { children: JSX.Element; role?: string }) {
   const user = useStore(s => s.user)
@@ -28,6 +29,7 @@ function Guard({ children, role }: { children: JSX.Element; role?: string }) {
     if (user.role === 'admin') return <Navigate to={user.username === 'hamed' ? '/superadmin' : '/admin'} replace />
     if (user.role === 'teacher') return <Navigate to="/teacher" replace />
     if (user.role === 'parent') return <Navigate to="/parent" replace />
+    if (user.role === 'accountant') return <Navigate to="/accounting" replace />
     return <Navigate to="/" replace />
   }
   return children
@@ -57,6 +59,7 @@ export default function App() {
         <Route path="/learn" element={<Guard role="student"><LearningHubPage /></Guard>} />
         <Route path="/download" element={<DownloadPage />} />
         <Route path="/battle" element={<Guard role="student"><BattlePage /></Guard>} />
+        <Route path="/accounting" element={<Guard role="accountant"><AccountingPage /></Guard>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

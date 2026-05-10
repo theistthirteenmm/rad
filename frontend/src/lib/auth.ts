@@ -1,6 +1,6 @@
 import { api, setToken, clearToken } from './apiClient'
 
-export type Role = 'student' | 'parent' | 'teacher' | 'admin'
+export type Role = 'student' | 'parent' | 'teacher' | 'admin' | 'accountant'
 
 export interface User {
   id: string

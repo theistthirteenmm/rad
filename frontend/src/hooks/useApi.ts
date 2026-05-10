@@ -6,6 +6,12 @@ const API = axios.create({
   timeout: 10000,
 })
 
+API.interceptors.request.use(cfg => {
+  const token = localStorage.getItem('radin_token')
+  if (token && cfg.headers) cfg.headers.Authorization = `Bearer ${token}`
+  return cfg
+})
+
 export const api = {
   createStudent: (data: any) => API.post('/students/', data),
   getStudent: (id: number) => API.get(`/students/${id}`),
@@ -24,6 +30,16 @@ export const api = {
   getScienceTopic: (topic: string) => API.get(`/games/science/${topic}`),
   getQuranVerses: () => API.get('/games/quran/verses'),
   updateStudent: (id: number, data: any) => API.patch(`/students/${id}`, data),
+
+  // ─── Accounting ──────────────────────────────────────────────────
+  getInvoices: (params?: { kind?: string; status?: string; search?: string }) =>
+    API.get('/accounting/invoices', { params }),
+  getAccountingSummary: () => API.get('/accounting/summary'),
+  createInvoice: (data: any) => API.post('/accounting/invoices', data),
+  bulkCreateInvoices: (data: any[]) => API.post('/accounting/invoices/bulk', data),
+  updateInvoice: (id: number, data: any) => API.put(`/accounting/invoices/${id}`, data),
+  deleteInvoice: (id: number) => API.delete(`/accounting/invoices/${id}`),
+  deleteManyInvoices: (ids: number[]) => API.delete('/accounting/invoices', { data: ids }),
 }
 
 export function useSaveSession() {
