@@ -1,7 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useStore } from '../store/useStore'
+import { api } from '../hooks/useApi'
+import { isSubjectAvailable, hasAnyContent, getGradeLabel } from '../lib/gradeContent'
+
+const SUBJECT_EMOJI: Record<string, string> = {
+  farsi: '📖', math: '🔢', science: '🌱', quran: '📿', writing: '✏️',
+}
 
 const AVATARS = ['🦁', '🐯', '🐻', '🦊', '🐼', '🐸', '🦋', '🐬']
 
@@ -20,6 +26,13 @@ export default function HomePage() {
   const student = useStore((s) => s.student)
   const logout = useStore((s) => s.logout)
   const [mode, setMode] = useState<Mode>('learn')
+  const [activeExams, setActiveExams] = useState<any[]>([])
+
+  useEffect(() => {
+    api.getActiveExams()
+      .then(r => setActiveExams(r.data))
+      .catch(() => {})
+  }, [])
 
   if (!student) return null
 
@@ -94,6 +107,44 @@ export default function HomePage() {
         </div>
       </motion.div>
 
+      {/* آزمون‌های فعال */}
+      {activeExams.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+          style={{ marginBottom: 20 }}>
+          <h2 style={{ fontSize: 14, color: '#FF6584', fontWeight: 700, marginBottom: 10 }}>
+            🔔 آزمون فعال داری!
+          </h2>
+          {activeExams.map(exam => {
+            const done = exam.attempt_status === 'submitted'
+            const closed = exam.attempt_status === 'force_closed'
+            return (
+              <motion.button key={exam.id} whileTap={{ scale: 0.98 }}
+                onClick={() => !done && !closed && nav(`/exam/${exam.id}`)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '14px 16px', borderRadius: 16, marginBottom: 8,
+                  background: done ? '#f0fff9' : closed ? '#fff0f3' : 'linear-gradient(135deg, #ff6584, #ff9800)',
+                  border: done ? '2px solid #06D6A040' : closed ? '2px solid #FF658440' : 'none',
+                  cursor: done || closed ? 'default' : 'pointer',
+                  boxShadow: done || closed ? 'none' : '0 4px 16px rgba(255,101,132,0.35)',
+                  color: done || closed ? 'var(--text-light)' : 'white',
+                  textAlign: 'right',
+                }}>
+                <div style={{ fontSize: '2rem', flexShrink: 0 }}>{SUBJECT_EMOJI[exam.subject] || '📝'}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>{exam.title}</div>
+                  <div style={{ fontSize: 12, opacity: 0.85 }}>
+                    {done ? '✅ انجام داده‌ای' : closed ? '🚫 بسته شده' :
+                      exam.time_limit_minutes ? `⏱ ${exam.time_limit_minutes} دقیقه` : '⏱ بدون محدودیت زمانی'}
+                  </div>
+                </div>
+                {!done && !closed && <div style={{ fontSize: 22 }}>←</div>}
+              </motion.button>
+            )
+          })}
+        </motion.div>
+      )}
+
       {/* Mode Toggle */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
         <motion.button whileTap={{ scale: 0.97 }} onClick={() => setMode('learn')}
@@ -133,28 +184,61 @@ export default function HomePage() {
         <h2 style={{ fontSize: 14, color: 'var(--text-light)', marginBottom: 10 }}>
           {mode === 'learn' ? '📖 انتخاب موضوع یادگیری:' : '🕹️ انتخاب درس بازی:'}
         </h2>
+
+        {!hasAnyContent(student.grade) && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            style={{ background: '#fffbf0', border: '2px dashed #FFB703', borderRadius: 16,
+              padding: '16px 20px', textAlign: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: '1.8rem', marginBottom: 6 }}>🚧</div>
+            <div style={{ fontWeight: 700, color: '#FFB703', fontSize: 14 }}>
+              محتوای {getGradeLabel(student.grade)} در حال آماده‌سازی
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 4 }}>
+              بزودی برای پایه شما محتوا اضافه می‌شود
+            </div>
+          </motion.div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {SUBJECTS.map((subj, i) => (
-            <motion.button
-              key={subj.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.06 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleSubject(subj.id)}
-              style={{
-                background: subj.bg, borderRadius: 20, padding: '20px 16px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                gap: 8, border: `2px solid ${subj.color}22`, cursor: 'pointer',
-                gridColumn: i === 4 ? 'span 2' : 'span 1'
-              }}>
-              <div style={{ fontSize: '2.5rem' }}>{subj.emoji}</div>
-              <div style={{ fontWeight: 700, color: subj.color, fontSize: 16 }}>{subj.label}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-light)' }}>
-                {mode === 'learn' ? subj.desc : '🎮 ' + subj.desc}
-              </div>
-            </motion.button>
-          ))}
+          {SUBJECTS.map((subj, i) => {
+            const available = isSubjectAvailable(student.grade, subj.id, mode === 'learn' ? 'learn' : 'games')
+            return (
+              <motion.button
+                key={subj.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.06 }}
+                whileTap={available ? { scale: 0.95 } : {}}
+                onClick={() => available && handleSubject(subj.id)}
+                style={{
+                  background: available ? subj.bg : '#f5f5f5',
+                  borderRadius: 20, padding: '20px 16px',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  gap: 8,
+                  border: available ? `2px solid ${subj.color}22` : '2px dashed #ddd',
+                  cursor: available ? 'pointer' : 'default',
+                  gridColumn: i === 4 ? 'span 2' : 'span 1',
+                  position: 'relative', overflow: 'hidden',
+                  opacity: available ? 1 : 0.75,
+                }}>
+                <div style={{ fontSize: '2.5rem', filter: available ? 'none' : 'grayscale(80%)' }}>
+                  {subj.emoji}
+                </div>
+                <div style={{ fontWeight: 700, color: available ? subj.color : '#bbb', fontSize: 16 }}>
+                  {subj.label}
+                </div>
+                {available ? (
+                  <div style={{ fontSize: 12, color: 'var(--text-light)' }}>
+                    {mode === 'learn' ? subj.desc : '🎮 ' + subj.desc}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 11, color: '#bbb', fontWeight: 600, textAlign: 'center' }}>
+                    🚧 در حال آماده‌سازی
+                  </div>
+                )}
+              </motion.button>
+            )
+          })}
         </div>
       </motion.div>
 

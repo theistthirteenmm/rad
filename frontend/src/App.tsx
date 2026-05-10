@@ -21,6 +21,8 @@ import SuperAdminPage from './pages/SuperAdminPage'
 import DownloadPage from './pages/DownloadPage'
 import BattlePage from './pages/BattlePage'
 import AccountingPage from './pages/AccountingPage'
+import TeacherExamPage from './pages/TeacherExamPage'
+import ExamPage from './pages/ExamPage'
 
 function Guard({ children, role }: { children: JSX.Element; role?: string }) {
   const user = useStore(s => s.user)
@@ -60,6 +62,8 @@ export default function App() {
         <Route path="/download" element={<DownloadPage />} />
         <Route path="/battle" element={<Guard role="student"><BattlePage /></Guard>} />
         <Route path="/accounting" element={<Guard role="accountant"><AccountingPage /></Guard>} />
+        <Route path="/teacher/exams" element={<Guard role="teacher"><TeacherExamPage /></Guard>} />
+        <Route path="/exam/:examId" element={<Guard role="student"><ExamPage /></Guard>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

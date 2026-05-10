@@ -112,6 +112,59 @@ class SubjectProgress(Base):
     user = relationship('User', back_populates='subject_progress')
 
 
+class Exam(Base):
+    __tablename__ = 'exams'
+    id = Column(Integer, primary_key=True)
+    title = Column(String, nullable=False)
+    subject = Column(String, nullable=False)
+    teacher_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    school_id = Column(Integer, ForeignKey('schools.id'), nullable=True)
+    class_id = Column(Integer, ForeignKey('classrooms.id'), nullable=True)
+    grade_id = Column(Integer, ForeignKey('grades.id'), nullable=True)
+    time_limit_minutes = Column(Integer, default=0)  # 0 = بدون محدودیت
+    status = Column(String, default='draft')  # draft, active, scheduled, closed
+    scheduled_at = Column(DateTime, nullable=True)
+    shuffle_questions = Column(Boolean, default=True)
+    shuffle_options = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    questions = relationship('ExamQuestion', back_populates='exam', cascade='all, delete-orphan', order_by='ExamQuestion.order')
+    attempts = relationship('ExamAttempt', back_populates='exam', cascade='all, delete-orphan')
+    teacher = relationship('User', foreign_keys=[teacher_id])
+
+
+class ExamQuestion(Base):
+    __tablename__ = 'exam_questions'
+    id = Column(Integer, primary_key=True)
+    exam_id = Column(Integer, ForeignKey('exams.id'), nullable=False)
+    order = Column(Integer, default=0)
+    text = Column(String, nullable=False)
+    image_data = Column(String, nullable=True)  # base64 data URL
+    option_a = Column(String, nullable=False)
+    option_b = Column(String, nullable=False)
+    option_c = Column(String, nullable=False)
+    option_d = Column(String, nullable=False)
+    correct = Column(String, nullable=False)  # 'a', 'b', 'c', 'd'
+    exam = relationship('Exam', back_populates='questions')
+
+
+class ExamAttempt(Base):
+    __tablename__ = 'exam_attempts'
+    id = Column(Integer, primary_key=True)
+    exam_id = Column(Integer, ForeignKey('exams.id'), nullable=False)
+    student_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    started_at = Column(DateTime, default=datetime.utcnow)
+    submitted_at = Column(DateTime, nullable=True)
+    answers = Column(JSON, default=dict)  # {question_id: 'a'/'b'/'c'/'d'}
+    score = Column(Integer, default=0)
+    total = Column(Integer, default=0)
+    status = Column(String, default='in_progress')  # in_progress, submitted, force_closed
+    away_count = Column(Integer, default=0)
+    away_seconds = Column(Integer, default=0)
+    exam = relationship('Exam', back_populates='attempts')
+    student = relationship('User', foreign_keys=[student_id])
+    __table_args__ = (UniqueConstraint('exam_id', 'student_id', name='uq_exam_attempt'),)
+
+
 class Invoice(Base):
     __tablename__ = 'invoices'
     id = Column(Integer, primary_key=True)

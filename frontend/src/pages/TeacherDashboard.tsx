@@ -99,10 +99,16 @@ export default function TeacherDashboard() {
           <div style={{ fontWeight: 700, fontSize: 17 }}>سلام {user.name.split(' ')[0]} 👩‍🏫</div>
           <div style={{ fontSize: 12, color: 'var(--text-light)' }}>{user.school}</div>
         </div>
-        <button onClick={() => { logout(); nav('/login') }}
-          style={{ background: '#fff0f3', color: '#FF6584', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600 }}>
-          خروج
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => nav('/teacher/exams')}
+            style={{ background: '#f0eeff', color: 'var(--primary)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+            📝 آزمون‌ها
+          </button>
+          <button onClick={() => { logout(); nav('/login') }}
+            style={{ background: '#fff0f3', color: '#FF6584', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600 }}>
+            خروج
+          </button>
+        </div>
       </motion.div>
 
       {/* Class Stats */}

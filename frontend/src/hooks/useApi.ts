@@ -40,6 +40,21 @@ export const api = {
   updateInvoice: (id: number, data: any) => API.put(`/accounting/invoices/${id}`, data),
   deleteInvoice: (id: number) => API.delete(`/accounting/invoices/${id}`),
   deleteManyInvoices: (ids: number[]) => API.delete('/accounting/invoices', { data: ids }),
+
+  // ─── Exams ───────────────────────────────────────────────────────
+  getActiveExams: () => API.get('/exams/active/list'),
+  listExams: () => API.get('/exams/'),
+  createExam: (data: any) => API.post('/exams/', data),
+  getExam: (id: number) => API.get(`/exams/${id}`),
+  updateExam: (id: number, data: any) => API.patch(`/exams/${id}`, data),
+  deleteExam: (id: number) => API.delete(`/exams/${id}`),
+  addQuestion: (examId: number, data: any) => API.post(`/exams/${examId}/questions`, data),
+  updateQuestion: (examId: number, qid: number, data: any) => API.put(`/exams/${examId}/questions/${qid}`, data),
+  deleteQuestion: (examId: number, qid: number) => API.delete(`/exams/${examId}/questions/${qid}`),
+  getExamResults: (examId: number) => API.get(`/exams/${examId}/results`),
+  startExam: (examId: number) => API.post(`/exams/${examId}/start`),
+  submitExam: (examId: number, answers: Record<string, string>) => API.post(`/exams/${examId}/submit`, { answers }),
+  reportAway: (examId: number, awaySecs: number) => API.patch(`/exams/${examId}/away`, { action: 'return', away_seconds: awaySecs }),
 }
 
 export function useSaveSession() {
